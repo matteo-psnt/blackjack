@@ -1,0 +1,49 @@
+.card-container {
+    position: relative;
+    cursor: grab;
+    height: 20%;
+}
+
+.card {
+    position: relative;
+    height: 100%;
+    display: block;
+    justify-content: center;
+    align-items: center;
+}
+
+.card img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.front, .back {
+    position: absolute;
+    object-fit: contain;
+    border-radius: 4.5%;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.277);
+    backface-visibility: hidden;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.front {
+    transform: rotateY(0deg);
+}
+
+.back {
+    transform: rotateY(180deg);
+}
+
+.card.flipped .front {
+    transform: rotateY(180deg);
+}
+
+.card.flipped .back {
+    transform: rotateY(0deg);
+}
