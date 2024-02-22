@@ -1,0 +1,69 @@
+.player-cards {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4.5%;
+    width: 100%;
+    height: 15%;
+    position: absolute;
+    top: 65%;
+}
+
+.card-rows {
+    position: relative;
+    width: 10%;
+    height: 100%;
+}
+
+:root {
+    --transform-step-y: 118%;
+    --transform-step-x: 13%;
+}
+
+.card-rows .card-container:nth-child(1) { transform: translateX(calc(var(--transform-step-x) * 0)) translateY(calc(var(--transform-step-y) * 0)); }
+.card-rows .card-container:nth-child(2) { transform: translateX(calc(var(--transform-step-x) * 1)) translateY(calc(var(--transform-step-y) * -1)); }
+.card-rows .card-container:nth-child(3) { transform: translateX(calc(var(--transform-step-x) * 2)) translateY(calc(var(--transform-step-y) * -2)); }
+.card-rows .card-container:nth-child(4) { transform: translateX(calc(var(--transform-step-x) * 3)) translateY(calc(var(--transform-step-y) * -3)); }
+.card-rows .card-container:nth-child(5) { transform: translateX(calc(var(--transform-step-x) * 4)) translateY(calc(var(--transform-step-y) * -4)); }
+.card-rows .card-container:nth-child(6) { transform: translateX(calc(var(--transform-step-x) * 5)) translateY(calc(var(--transform-step-y) * -5)); }
+.card-rows .card-container:nth-child(7) { transform: translateX(calc(var(--transform-step-x) * 6)) translateY(calc(var(--transform-step-y) * -6)); }
+.card-rows .card-container:nth-child(8) { transform: translateX(calc(var(--transform-step-x) * 7)) translateY(calc(var(--transform-step-y) * -7)); }
+.card-rows .card-container:nth-child(9) { transform: translateX(calc(var(--transform-step-x) * 8)) translateY(calc(var(--transform-step-y) * -8)); }
+.card-rows .card-container:nth-child(10) { transform: translateX(calc(var(--transform-step-x) * 9)) translateY(calc(var(--transform-step-y) * -9)); }
+.card-rows .card-container:nth-child(11) { transform: translateX(calc(var(--transform-step-x) * 10)) translateY(calc(var(--transform-step-y) * -10)); }
+
+
+.betting-area {
+    position: absolute;
+    top: 80%;
+    left: 50%;
+    height: 16%;
+    width: 6.5%;
+    transform: translate(-50%, -50%);
+    border-radius: 10%;
+    border: calc(0.2vw) solid rgba(255, 255, 255, 0.77);
+}
+
+.row-value {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    height: 26%;
+    width: 25%;
+    border-radius: 20%;
+    transform: translate(-50%, -50%);
+    font-size: calc(1.25vw);
+    color: white;
+    font-weight: bold;
+    background: #1E1E1E;
+}
+
+.row-value.current {
+    background: #fffc93;
+    color: #312c1f;
+    box-shadow: 0 0 10px rgba(255, 249, 64, 0.50);
+}

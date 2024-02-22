@@ -1,10 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
-import Card from './components/Card';
-import { CardRank, CardSuit } from './components/enums'
+import Game from "./components/Game";
 
 function App() {
-    const aspectRatio = 1280 / 720;
+    const aspectRatio = 1300 / 720;
     const [componentSize, setComponentSize] = useState({ width: 0, height: 0 });
 
     const updateSize = () => {
@@ -40,10 +39,7 @@ function App() {
                   height: `${componentSize.height}px`,
               }}
           >
-                <Card suit={CardSuit.Diamonds} rank={CardRank.Ace} />
-                <Card suit={CardSuit.Hearts} rank={CardRank.Two} />
-                <Card suit={CardSuit.Spades} rank={CardRank.Three} />
-                <Card suit={CardSuit.Clubs} rank={CardRank.Four} />
+                <Game />
           </div>
       </div>
   );
