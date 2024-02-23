@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
-import './Card.css';
-import './Game.css';
+import '../styles/Card.css';
+import '../styles/Game.css';
 import blank from '../assets/cards/blank.svg';
 import back from '../assets/cards/back.svg';
 import {CardRank, CardSuit} from './enums';

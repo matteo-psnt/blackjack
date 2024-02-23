@@ -1,24 +1,24 @@
 import React, {useState} from 'react';
-import './Game.css';
+import '../styles/Game.css';
 import Card from './Card';
 import {CardRank, CardSuit} from './enums';
 import Deck from './Deck';
-
-// enum GameState {
-//     bet,
-//     init,
-//     userTurn,
-//     dealerTurn
-// }
+import ChipStack from "./ChipStack";
+import BettingControls from "./BettingControls";
 
 const Game = () => {
     const [deck] = useState(new Deck());
     const [cards, setCards] = useState<Array<Array<{ rank: CardRank, suit: CardSuit, style?: React.CSSProperties }>>>([]);
     const [currentFocus, setCurrentFocus] = useState(0);
+    const [currentBet, setCurrentBet] = useState(0);
+    const [currentBalance, setCurrentBalance] = useState(1000);
 
+    const updateCurrentBet = (bet: number) => {
+        setCurrentBet((currentBet + bet));
+        setCurrentBalance((currentBalance - bet));
+    };
 
     deck.shuffle();
-    console.log(deck.deck);
 
     const addCard = () => {
         const newCard = deck.dealCard();
@@ -77,7 +77,8 @@ const Game = () => {
             <div className="player-cards">
                 {cards.map((row, rowIndex) =>
                     <div className="card-rows" key={`row-${rowIndex}`}>
-                        <text className={`row-value ${currentFocus === rowIndex ? 'current' : ''}`}>{calculateValue(row)}</text>
+                        <text
+                            className={`row-value ${currentFocus === rowIndex ? 'current' : ''}`}>{calculateValue(row)}</text>
                         {row.map((card, cardIndex) =>
                             <Card
                                 key={`${rowIndex}-${cardIndex}`}
@@ -91,14 +92,11 @@ const Game = () => {
                     </div>
                 )}
             </div>
-            <div className="betting-area"></div>
-            <div className="player-controls">
-                <button>Hit</button>
-                <button>Stand</button>
-                <button>Double Down</button>
-                <button>Split</button>
+            <BettingControls onBetChange={updateCurrentBet} currentBalance={currentBalance}/>
+            <button onClick={() => setCurrentBet(0)}>Clear Bet</button>
+            <div className="betting-area">
+                <ChipStack chipTotal={currentBet}/>
             </div>
-
         </div>
     );
 };
