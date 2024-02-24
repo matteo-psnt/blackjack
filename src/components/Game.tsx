@@ -10,12 +10,17 @@ const Game = () => {
     const [deck] = useState(new Deck());
     const [cards, setCards] = useState<Array<Array<{ rank: CardRank, suit: CardSuit, style?: React.CSSProperties }>>>([]);
     const [currentFocus, setCurrentFocus] = useState(0);
-    const [currentBet, setCurrentBet] = useState(999);
+    const [currentBet, setCurrentBet] = useState(0);
     const [currentBalance, setCurrentBalance] = useState(1000);
 
-    const updateCurrentBet = (bet: number) => {
-        setCurrentBet((currentBet + bet));
-        setCurrentBalance((currentBalance - bet));
+    const updateCurrentBet = (newBet: number) => {
+        const betDifference = newBet - currentBet;
+        const newBalance = currentBalance - betDifference;
+
+        if (newBet >= 0 && newBalance >= 0) {
+            setCurrentBet(newBet);
+            setCurrentBalance(newBalance);
+        }
     };
 
     deck.shuffle();
@@ -68,11 +73,6 @@ const Game = () => {
         setCurrentBalance(currentBalance + chipValue);
     };
 
-    const handleBetChange = (newBet: number) => {
-        setCurrentBet(newBet);
-    };
-
-
     return (
         <div>
             <button onClick={addCard}>Add Card</button>
@@ -102,7 +102,8 @@ const Game = () => {
                     </div>
                 )}
             </div>
-            <BettingControls currentBalance={currentBalance} currentBet={currentBet} changeBetAmount={updateCurrentBet} setBetAmount={setCurrentBet}/>
+            <text>{currentBalance}</text>
+            <BettingControls currentBalance={currentBalance} currentBet={currentBet} setBetAmount={updateCurrentBet}/>
             <div className="betting-area">
                 <ChipStack chipTotal={currentBet} onChipClick={handleChipClick}/>
             </div>
