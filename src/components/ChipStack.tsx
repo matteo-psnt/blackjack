@@ -38,7 +38,7 @@ const ChipStack: React.FC<ChipStackProps> = ({ chipTotal, onChipClick }) => {
                 <Chip
                     key={`${value}-${chipComponents.length}`}
                     value={value}
-                    style={{ top: `${80 + offset}%` }}
+                    style={{ top: `${70 + offset}%` }}
                     onClick={() => onChipClick(value)}
                 />
             );

@@ -20,3 +20,17 @@ export enum CardSuit {
     Hearts = "HEART",
     Spades = "SPADE"
 }
+
+export enum GameState {
+    Betting,
+    Dealing,
+    Play,
+    Results
+}
+
+export enum CardAnimation {
+    SlideDown = 'slideDown',
+    SlideRight = 'slideRight',
+    SlideLeft = 'slideLeft',
+    SlideDownRight = 'slideDownRight',
+}

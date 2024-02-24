@@ -10,7 +10,7 @@
     width: auto;
     object-fit: contain;
     border-radius: 4.5%;
-    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.277);
+    box-shadow: 0 0.10em 0.15em rgba(0, 0, 0, 0.277);
     backface-visibility: hidden;
     transition: transform 0.6s;
     transform-style: preserve-3d;
@@ -31,3 +31,58 @@
 .card.flipped .back {
     transform: rotateY(0deg);
 }
+
+.slideDown {
+    animation: slideDown 0.5s ease-in-out;
+}
+
+.slideRight {
+    animation: slideRight 1s ease-in-out;
+}
+
+.slideLeft {
+    animation: slideLeft 1s ease-in-out;
+}
+
+.slideDownRight {
+    animation: slideDownRight 1s ease-in-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideRight {
+    from {
+        transform: translateX(-72.5%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideLeft {
+    from {
+        transform: translateX(72.5%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideDownRight {
+    from {
+        transform: translate(-59.5%, -18%);
+    }
+    to {
+        transform: translate(0, 0);
+    }
+}
+

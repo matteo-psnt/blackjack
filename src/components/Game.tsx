@@ -1,17 +1,21 @@
 import React, {useState} from 'react';
 import '../styles/Game.css';
 import Card from './Card';
-import {CardRank, CardSuit} from './enums';
+import {CardAnimation, CardRank, CardSuit, GameState} from './enums';
 import Deck from './Deck';
 import ChipStack from "./ChipStack";
 import BettingControls from "./BettingControls";
+import GameControls from "./GameControls";
 
 const Game = () => {
     const [deck] = useState(new Deck());
-    const [cards, setCards] = useState<Array<Array<{ rank: CardRank, suit: CardSuit, style?: React.CSSProperties }>>>([]);
+    const [cards, setCards] = useState<Array<Array<{ rank: CardRank, suit: CardSuit, style?: React.CSSProperties, animation?: CardAnimation }>>>([]);
     const [currentFocus, setCurrentFocus] = useState(0);
     const [currentBet, setCurrentBet] = useState(0);
     const [currentBalance, setCurrentBalance] = useState(1000);
+    const [gameState, setGameState] = useState(GameState.Betting)
+
+    deck.shuffle();
 
     const updateCurrentBet = (newBet: number) => {
         const betDifference = newBet - currentBet;
@@ -23,8 +27,6 @@ const Game = () => {
         }
     };
 
-    deck.shuffle();
-
     const addCard = () => {
         const newCard = deck.dealCard();
         if (newCard) {
@@ -33,7 +35,21 @@ const Game = () => {
                 if (!newCards[currentFocus]) {
                     newCards[currentFocus] = [];
                 }
-                newCards[currentFocus] = [...newCards[currentFocus], newCard];
+                newCards[currentFocus] = [...newCards[currentFocus], {...newCard, animation: CardAnimation.SlideDown}];
+                return newCards;
+            });
+        }
+    };
+
+    const addCardIndex = (focusIndex: number) => {
+        const newCard = deck.dealCard();
+        if (newCard) {
+            setCards(currentCards => {
+                const newCards = [...currentCards];
+                if (!newCards[focusIndex]) {
+                    newCards[focusIndex] = [];
+                }
+                newCards[focusIndex] = [...newCards[focusIndex], {...newCard, animation: CardAnimation.SlideDown}];
                 return newCards;
             });
         }
@@ -41,16 +57,30 @@ const Game = () => {
 
     const split = () => {
         setCards(currentCards => {
-            if (currentCards[currentFocus] && currentCards[currentFocus].length === 2) {
-                const card = currentCards[currentFocus].pop();
-                if (card) {
-                    currentCards.splice(currentFocus + 1, 0, [card]);
-                    setCurrentFocus(currentFocus + 1);
-                }
+            let newCards = [...currentCards];
+            newCards = newCards.map((cardGroup, index) => {
+                const animation = index < currentFocus ? CardAnimation.SlideLeft : CardAnimation.SlideRight;
+                return cardGroup.map(card => ({ ...card, animation }));
+            });
+
+            if (newCards[currentFocus] && newCards[currentFocus].length === 2) {
+                const [cardLeft, cardRight] = newCards[currentFocus];
+                newCards.splice(currentFocus, 1);
+                newCards.splice(currentFocus, 0, [{ ...cardLeft, animation: CardAnimation.SlideLeft }],
+                    [{ ...cardRight, animation: CardAnimation.SlideDownRight }]
+                );
             }
-            return currentCards;
+            return newCards;
         });
-    }
+        setTimeout(() => {
+            setCards(currentCards => currentCards.map(cardGroup =>
+                cardGroup.map(card => ({ ...card, animation: undefined }))
+            ));
+        }, 1000);
+        setTimeout(() => addCardIndex(currentFocus), 1500);
+        setTimeout(() => addCardIndex(currentFocus + 1), 2000);
+        setCurrentFocus(currentFocus + 1);
+    };
 
     const calculateValue = (hand: Array<{ rank: CardRank, suit: CardSuit }>) => {
         let value = 0;
@@ -73,36 +103,40 @@ const Game = () => {
         setCurrentBalance(currentBalance + chipValue);
     };
 
+    function displayCards() {
+        return <div className="player-cards">
+            {cards.map((row, rowIndex) =>
+                <div className="card-rows" key={`row-${rowIndex}`}>
+                    <div className={`row-value ${currentFocus === rowIndex ? 'current' : ''}`}>
+                        {calculateValue(row)}
+                    </div>
+                    {row.map((card, cardIndex) =>
+                        <Card
+                            key={`${rowIndex}-${cardIndex}`}
+                            rank={card.rank}
+                            suit={card.suit}
+                            style={{
+                                top: `${cardIndex * -118}%`,
+                                left: `${cardIndex * 13}%`
+                            }}
+                            animation={card.animation}
+                        />
+                    )}
+                </div>
+            )}
+        </div>;
+    }
+
     return (
         <div>
-            <button onClick={addCard}>Add Card</button>
-            <button onClick={split}>Split</button>
-            <button onClick={() => setCurrentFocus(currentFocus + 1)}>Next</button>
-            <button onClick={() => setCurrentFocus(currentFocus - 1)}>Previous</button>
-            <text>{currentFocus}</text>
+            <div>{currentFocus}</div>
+            <GameControls addCard={addCard} split={split} setCurrentFocus={setCurrentFocus} currentFocus={currentFocus} gameState={gameState} setGameState={setGameState}/>
             <div className="dealer-cards">
                 <Card rank={CardRank.Ace} suit={CardSuit.Clubs} style={{left: '0px', top: '0px'}}/>
                 <Card rank={CardRank.Ace} suit={CardSuit.Clubs} style={{left: '40px', top: '0px'}}/>
             </div>
-            <div className="player-cards">
-                {cards.map((row, rowIndex) =>
-                    <div className="card-rows" key={`row-${rowIndex}`}>
-                        <text
-                            className={`row-value ${currentFocus === rowIndex ? 'current' : ''}`}>{calculateValue(row)}</text>
-                        {row.map((card, cardIndex) =>
-                            <Card
-                                key={`${rowIndex}-${cardIndex}`}
-                                rank={card.rank}
-                                suit={card.suit}
-                                style={{
-                                    transitionDuration: '0.5s',
-                                }}
-                            />
-                        )}
-                    </div>
-                )}
-            </div>
-            <text>{currentBalance}</text>
+            {displayCards()}
+            <div className="balance">${currentBalance}</div>
             <BettingControls currentBalance={currentBalance} currentBet={currentBet} setBetAmount={updateCurrentBet}/>
             <div className="betting-area">
                 <ChipStack chipTotal={currentBet} onChipClick={handleChipClick}/>

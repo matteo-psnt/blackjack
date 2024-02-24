@@ -5,6 +5,7 @@ import Game from "./components/Game";
 function App() {
     const aspectRatio = 1300 / 720;
     const [componentSize, setComponentSize] = useState({ width: 0, height: 0 });
+    const [fontSize, setFontSize] = useState(0);
 
     const updateSize = () => {
         const windowHeight = window.innerHeight;
@@ -21,7 +22,7 @@ function App() {
             width = windowWidth;
             height = width / aspectRatio;
         }
-
+        setFontSize(width / 1300 * 24);
         setComponentSize({ width, height });
     };
 
@@ -37,6 +38,7 @@ function App() {
               style={{
                   width: `${componentSize.width}px`,
                   height: `${componentSize.height}px`,
+                  fontSize: `${fontSize}px`
               }}
           >
                 <Game />

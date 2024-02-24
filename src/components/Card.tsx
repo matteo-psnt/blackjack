@@ -1,38 +1,31 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import '../styles/Card.css';
-import '../styles/Game.css';
 import blank from '../assets/cards/blank.svg';
 import back from '../assets/cards/back.svg';
 import {CardRank, CardSuit} from './enums';
+import {CardAnimation} from './enums';
 
 interface CardProps {
     rank: CardRank;
     suit: CardSuit;
     style?: React.CSSProperties;
+    animation?: CardAnimation;
 }
 
-const Card: React.FC<CardProps> = ({rank, suit, style}) => {
+const Card: React.FC<CardProps> = ({rank, suit, style, animation}) => {
     const [isFlipped, setIsFlipped] = useState(false);
-
     const onDoubleClick = () => setIsFlipped(!isFlipped);
 
     const getImage = () => {
         if (isFlipped) return blank;
-        try {
-            return require(`../assets/cards/${suit}-${rank.toString()}.svg`);
-        } catch (e) {
-            console.warn(`Could not load image: ${suit}-${rank.toString()}.svg`);
-            return blank;
-        }
+        return require(`../assets/cards/${suit}-${rank.toString()}.svg`);
     };
 
-    // JSX Rendering
     return (
         <div
-            className="card-container"
+            className={`card-container ${animation ? animation : ''}`}
             onDoubleClick={onDoubleClick}
             style={{
-                transition: `all ${style?.transitionDuration || '0s'} ease-in-out`,
                 ...style
             }}
         >

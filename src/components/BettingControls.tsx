@@ -18,11 +18,19 @@ const BettingControls: React.FC<BettingControlsProps> = ({ currentBet, setBetAmo
     }, [currentBet, isEditing]);
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Enter", "Backspace", "ArrowLeft", "ArrowRight", "Delete"].includes(event.key)) {
+        if (!["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Enter", "Backspace", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Delete"].includes(event.key)) {
             event.preventDefault();
         } else if (event.key === 'Enter') {
             event.preventDefault();
             event.currentTarget.blur();
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setDisplayValue(`${currentBet + 1}$`);
+            setBetAmount(currentBet + 1);
+        } else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setDisplayValue(`${currentBet - 1}$`);
+            setBetAmount(currentBet - 1);
         }
     };
     const handleBlur = (event: React.FocusEvent<HTMLDivElement>) => {
