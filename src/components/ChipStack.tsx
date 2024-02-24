@@ -4,9 +4,10 @@ import '../styles/Chip.css';
 
 interface ChipStackProps {
     chipTotal: number;
+    onChipClick: (value: number) => void;
 }
 
-const ChipStack: React.FC<ChipStackProps> = ({ chipTotal }) => {
+const ChipStack: React.FC<ChipStackProps> = ({ chipTotal, onChipClick }) => {
     const dollarValues: number[] = [1000, 500, 100, 25, 10, 5, 1];
     let chipComponents: JSX.Element[] = [];
     let remainingAmount = chipTotal;
@@ -14,12 +15,13 @@ const ChipStack: React.FC<ChipStackProps> = ({ chipTotal }) => {
     for (let value of dollarValues) {
         while (remainingAmount >= value) {
             remainingAmount -= value;
-            const offset = chipComponents.length * -107;
+            const offset = chipComponents.length * -30.25;
             chipComponents.push(
                 <Chip
                     key={`${value}-${chipComponents.length}`}
                     value={value}
                     style={{ top: `${80 + offset}%` }}
+                    onClick={() => onChipClick(value)}
                 />
             );
         }
