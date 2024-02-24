@@ -102,7 +102,7 @@ const Game = () => {
                     </div>
                 )}
             </div>
-            <BettingControls currentBalance={currentBalance} currentBet={currentBet} onBetChange={updateCurrentBet} setCurrentBet={setCurrentBet}/>
+            <BettingControls currentBalance={currentBalance} currentBet={currentBet} changeBetAmount={updateCurrentBet} setBetAmount={setCurrentBet}/>
             <div className="betting-area">
                 <ChipStack chipTotal={currentBet} onChipClick={handleChipClick}/>
             </div>
