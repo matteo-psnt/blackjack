@@ -1,8 +1,16 @@
+.dealer-cards {
+    position: absolute;
+    top: 16%;
+    left: 50%;
+    width: 7.5%;
+    height: 15%;
+    transform: translate(-50%, -50%);
+}
+
 .player-cards {
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
     gap: 4.5%;
     width: 103%;
     height: 15%;
@@ -28,7 +36,7 @@
     border: 0.15em solid rgba(255, 255, 255, 0.77);
 }
 
-.row-value {
+.value {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -45,7 +53,7 @@
     background: #1E1E1E;
 }
 
-.row-value.current {
+.value.current {
     background: #fffc93;
     color: #312c1f;
     box-shadow: 0 0 0.2em rgba(255, 249, 64, 0.50);

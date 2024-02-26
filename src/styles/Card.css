@@ -1,6 +1,7 @@
 .card-container {
     position: relative;
     height: 100%;
+    width: 65%;
     transform: none;
 }
 
@@ -32,6 +33,10 @@
     transform: rotateY(0deg);
 }
 
+.slideUp {
+    animation: slideUp 0.5s ease-in-out;
+}
+
 .slideDown {
     animation: slideDown 0.5s ease-in-out;
 }
@@ -46,6 +51,21 @@
 
 .slideDownRight {
     animation: slideDownRight 1s ease-in-out;
+}
+
+.doubleDown {
+    animation: doubleDown 1s ease-in-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 @keyframes slideDown {
@@ -83,6 +103,17 @@
     }
     to {
         transform: translate(0, 0);
+    }
+}
+
+@keyframes doubleDown {
+    from {
+        transform: translate(50%, -150%) rotate(0deg);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) rotate(90deg);
+        opacity: 1;
     }
 }
 

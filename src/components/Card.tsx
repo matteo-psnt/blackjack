@@ -9,13 +9,11 @@ interface CardProps {
     rank: CardRank;
     suit: CardSuit;
     style?: React.CSSProperties;
+    isFlipped?: boolean
     animation?: CardAnimation;
 }
 
-const Card: React.FC<CardProps> = ({rank, suit, style, animation}) => {
-    const [isFlipped, setIsFlipped] = useState(false);
-    const onDoubleClick = () => setIsFlipped(!isFlipped);
-
+const Card: React.FC<CardProps> = ({rank, suit, style, isFlipped, animation}) => {
     const getImage = () => {
         if (isFlipped) return blank;
         return require(`../assets/cards/${suit}-${rank.toString()}.svg`);
@@ -24,7 +22,6 @@ const Card: React.FC<CardProps> = ({rank, suit, style, animation}) => {
     return (
         <div
             className={`card-container ${animation ? animation : ''}`}
-            onDoubleClick={onDoubleClick}
             style={{
                 ...style
             }}

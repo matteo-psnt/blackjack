@@ -1,3 +1,5 @@
+import exp from "node:constants";
+
 export enum CardRank {
     Ace = 1,
     Two = 2,
@@ -24,13 +26,40 @@ export enum CardSuit {
 export enum GameState {
     Betting,
     Dealing,
+    Animation,
+    DealerCheck,
+    Insurance,
     Play,
-    Results
+    DealerPlay,
+    DealerDeal,
+    Results,
+    WrapUp
+}
+
+export enum PlayState {
+    Blackjack,
+    CanSplit,
+    Split,
+    Normal,
+    Bust,
+    Post,
+    None
+}
+
+export enum HandState {
+    Bust,
+    Blackjack,
+    Win,
+    Push,
+    Lose,
+    None
 }
 
 export enum CardAnimation {
+    SlideUp = 'slideUp',
     SlideDown = 'slideDown',
     SlideRight = 'slideRight',
     SlideLeft = 'slideLeft',
     SlideDownRight = 'slideDownRight',
+    DoubleDown = 'doubleDown'
 }

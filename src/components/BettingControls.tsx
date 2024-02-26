@@ -1,21 +1,31 @@
 import React, {useEffect, useState} from 'react';
 import '../styles/BettingControls.css';
+import {GameState} from "./enums";
 
 interface BettingControlsProps {
-    currentBalance: number;
     currentBet: number;
     setBetAmount: (value: number) => void;
+    gameState: GameState;
 }
 
-const BettingControls: React.FC<BettingControlsProps> = ({ currentBet, setBetAmount }) => {
+const BettingControls: React.FC<BettingControlsProps> = ({ currentBet, setBetAmount, gameState }) => {
     const [displayValue, setDisplayValue] = useState(`${currentBet}$`);
     const [isEditing, setIsEditing] = useState(false);
+    const [isBetting, setIsBetting] = useState(true)
 
     useEffect(() => {
         if (!isEditing) {
             setDisplayValue(`${currentBet}$`);
         }
     }, [currentBet, isEditing]);
+
+    useEffect(() => {
+        if (gameState === GameState.Betting) {
+            setIsBetting(true);
+        } else if (gameState === GameState.Dealing) {
+            setIsBetting(false)
+        }
+    }, [gameState]);
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (!["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Enter", "Backspace", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Delete"].includes(event.key)) {
@@ -59,7 +69,7 @@ const BettingControls: React.FC<BettingControlsProps> = ({ currentBet, setBetAmo
     return (
         <div
             className="current-bet"
-            contentEditable={true}
+            contentEditable={isBetting}
             tabIndex={0}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
