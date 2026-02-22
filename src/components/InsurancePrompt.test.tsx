@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import InsurancePrompt from './InsurancePrompt';
 import { GameState } from './enums';
-import { createInsurancePromptProps, resolveStateSetterValue } from '../test/factories';
+import { createInsurancePromptProps } from '../test/factories';
 
 describe('InsurancePrompt', () => {
   it('renders nothing when insurance is not being offered', () => {
@@ -11,58 +11,52 @@ describe('InsurancePrompt', () => {
     const { container } = render(<InsurancePrompt {...props} />);
 
     expect(container).toBeEmptyDOMElement();
-    expect(screen.queryByText('Do you want to buy insurance?')).not.toBeInTheDocument();
+    expect(screen.queryByText(/buy insurance/i)).not.toBeInTheDocument();
   });
 
-  it('pays insurance on odd bets when the dealer has blackjack', () => {
+  it('shows the insurance cost in the prompt', () => {
     const props = createInsurancePromptProps({
-      betAmount: 15,
-      currentBalance: 100,
-      dealerHas21: true,
+      insuranceCost: 7,
     });
+
+    render(<InsurancePrompt {...props} />);
+
+    expect(screen.getByText('Do you want to buy insurance for $7?')).toBeInTheDocument();
+  });
+
+  it('disables buying insurance when the bankroll cannot cover it', () => {
+    const props = createInsurancePromptProps({
+      canAffordInsurance: false,
+    });
+
+    render(<InsurancePrompt {...props} />);
+
+    const buyButton = screen.getByRole('button', { name: 'Yes' });
+    expect(buyButton).toBeDisabled();
+    expect(buyButton).toHaveAttribute('title', 'Not enough chips to buy insurance');
+    expect(screen.getByText('Not enough chips available for insurance.')).toBeInTheDocument();
+
+    fireEvent.click(buyButton);
+    expect(props.onBuyInsurance).not.toHaveBeenCalled();
+  });
+
+  it('calls the buy handler when insurance is purchased', () => {
+    const props = createInsurancePromptProps();
 
     render(<InsurancePrompt {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
 
-    expect(props.setCurrentBalance).toHaveBeenCalledTimes(1);
-
-    const balanceUpdate = props.setCurrentBalance.mock.calls[0][0];
-    expect(resolveStateSetterValue(balanceUpdate, props.currentBalance)).toBe(107);
-    expect(props.setGameState).toHaveBeenCalledWith(GameState.DealerPlay);
+    expect(props.onBuyInsurance).toHaveBeenCalledTimes(1);
+    expect(props.onDeclineInsurance).not.toHaveBeenCalled();
   });
 
-  it('charges insurance when the dealer does not have blackjack', () => {
-    const props = createInsurancePromptProps({
-      betAmount: 15,
-      currentBalance: 100,
-      dealerHas21: false,
-    });
+  it('calls the decline handler when insurance is declined', () => {
+    const props = createInsurancePromptProps();
 
     render(<InsurancePrompt {...props} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'No' }));
 
-    expect(props.setCurrentBalance).toHaveBeenCalledTimes(1);
-
-    const balanceUpdate = props.setCurrentBalance.mock.calls[0][0];
-    expect(resolveStateSetterValue(balanceUpdate, props.currentBalance)).toBe(93);
-    expect(props.setGameState).toHaveBeenCalledWith(GameState.Play);
+    expect(props.onDeclineInsurance).toHaveBeenCalledTimes(1);
+    expect(props.onBuyInsurance).not.toHaveBeenCalled();
   });
-
-  it.each([
-    [true, GameState.DealerPlay],
-    [false, GameState.Play],
-  ])(
-    'skips the balance update when insurance is declined (dealerHas21=%s)',
-    (dealerHas21: boolean, nextState: GameState) => {
-      const props = createInsurancePromptProps({
-        dealerHas21,
-      });
-
-      render(<InsurancePrompt {...props} />);
-      fireEvent.click(screen.getByRole('button', { name: 'No' }));
-
-      expect(props.setCurrentBalance).not.toHaveBeenCalled();
-      expect(props.setGameState).toHaveBeenCalledWith(nextState);
-    },
-  );
 });

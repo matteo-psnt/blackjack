@@ -4,28 +4,45 @@ import { GameState, PlayState } from './enums';
 import { createGameControlsProps } from '../test/factories';
 
 describe('GameControls', () => {
-  it('does not start dealing when no bet has been placed', () => {
+  it('disables dealing when no bet has been staged', () => {
     const props = createGameControlsProps({
-      currentBet: 0,
+      canDeal: false,
       gameState: GameState.Betting,
     });
 
     render(<GameControls {...props} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Deal' }));
 
-    expect(props.setGameState).not.toHaveBeenCalled();
+    const dealButton = screen.getByRole('button', { name: 'Deal' });
+    expect(dealButton).toBeDisabled();
+
+    fireEvent.click(dealButton);
+    expect(props.deal).not.toHaveBeenCalled();
   });
 
-  it('starts dealing when a bet has been placed', () => {
+  it('starts dealing when a bet has been staged', () => {
     const props = createGameControlsProps({
-      currentBet: 25,
+      canDeal: true,
       gameState: GameState.Betting,
     });
 
     render(<GameControls {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Deal' }));
 
-    expect(props.setGameState).toHaveBeenCalledWith(GameState.Dealing);
+    expect(props.deal).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables split and double when the table rules do not allow the wager', () => {
+    const props = createGameControlsProps({
+      canDouble: false,
+      canSplit: false,
+      gameState: GameState.Play,
+      playState: PlayState.CanSplit,
+    });
+
+    render(<GameControls {...props} />);
+
+    expect(screen.getByRole('button', { name: 'Split' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Double' })).toBeDisabled();
   });
 
   it.each([

@@ -7,10 +7,12 @@ interface GameControlsProps {
   stand: () => void;
   split: () => void;
   double: () => void;
+  deal: () => void;
   gameState: GameState;
-  setGameState: (newState: GameState) => void;
-  currentBet: number;
   playState: PlayState;
+  canDeal: boolean;
+  canDouble: boolean;
+  canSplit: boolean;
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
@@ -18,21 +20,17 @@ const GameControls: React.FC<GameControlsProps> = ({
   stand,
   split,
   double,
+  deal,
   gameState,
-  setGameState,
-  currentBet,
   playState,
+  canDeal,
+  canDouble,
+  canSplit,
 }) => {
-  const deal = () => {
-    if (currentBet > 0) {
-      setGameState(GameState.Dealing);
-    }
-  };
-
   function buttons() {
     if (gameState === GameState.Betting) {
       return (
-        <button id="deal-button" onClick={deal}>
+        <button id="deal-button" onClick={deal} disabled={!canDeal}>
           Deal
         </button>
       );
@@ -42,16 +40,22 @@ const GameControls: React.FC<GameControlsProps> = ({
           <>
             <button onClick={hit}>Hit</button>
             <button onClick={stand}>Stand</button>
-            <button onClick={double}>Double</button>
+            <button onClick={double} disabled={!canDouble}>
+              Double
+            </button>
           </>
         );
       } else if (playState === PlayState.CanSplit) {
         return (
           <>
-            <button onClick={split}>Split</button>
+            <button onClick={split} disabled={!canSplit}>
+              Split
+            </button>
             <button onClick={hit}>Hit</button>
             <button onClick={stand}>Stand</button>
-            <button onClick={double}>Double</button>
+            <button onClick={double} disabled={!canDouble}>
+              Double
+            </button>
           </>
         );
       } else if (playState === PlayState.Post || playState === PlayState.Split) {

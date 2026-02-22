@@ -7,10 +7,14 @@ import BettingControls from './BettingControls';
 import GameControls from './GameControls';
 import InsurancePrompt from './InsurancePrompt';
 import GameOver from './GameOver';
-import { useGameStore } from '../store/gameStore';
+import {
+  getInsuranceCost,
+  getResolvedHandValue,
+  getVisibleHandValue,
+  useGameStore,
+} from '../store/gameStore';
 
 const Game = () => {
-  // Get state from Zustand
   const {
     playerCards,
     dealerCards,
@@ -24,19 +28,11 @@ const Game = () => {
     showGameOver,
     showDebug,
     deck,
-  } = useGameStore();
-
-  // Get actions from Zustand
-  const {
     setPlayerCards,
     setDealerCards,
-    setHandBets,
-    setTotalWagered,
     setCurrentFocus,
-    setCurrentBalance,
     setGameState,
     setPlayState,
-    setShowGameOver,
     setShowDebug,
     addPlayerCard,
     addDealerCard,
@@ -44,65 +40,59 @@ const Game = () => {
     handleChipClick,
     restartGame,
     initializeDeck,
+    beginDeal,
     hit,
     stand,
     split,
     double,
     moveFocus,
+    resolveInsuranceDecision,
+    finalizeRound,
   } = useGameStore();
 
-  // Calculate hand value
-  const calculateValue = (
-    hand: Array<{ rank: CardRank; isFlipped?: boolean }>,
-    includeUnflipped?: boolean,
-  ) => {
-    let value = 0;
-    let aces = 0;
-    for (let i = 0; i < hand.length; i++) {
-      if (!hand[i].isFlipped || includeUnflipped) {
-        if (hand[i].rank === CardRank.Ace) {
-          aces++;
-        }
-        value += Math.min(10, hand[i].rank);
-      }
-    }
-    while (value <= 11 && aces > 0) {
-      value += 10;
-      aces--;
-    }
-    return value;
-  };
+  const currentHand = playerCards[currentFocus];
+  const currentHandBet = handBets[currentFocus] ?? 0;
+  const insuranceCost = getInsuranceCost(currentBet);
+  const canDeal = currentBet > 0;
+  const canAffordInsurance = insuranceCost > 0 && currentBalance >= insuranceCost;
+  const canDouble =
+    gameState === GameState.Play &&
+    (playState === PlayState.Normal || playState === PlayState.CanSplit) &&
+    currentHand !== undefined &&
+    currentHand.length === 2 &&
+    currentHandBet > 0 &&
+    currentBalance >= currentHandBet;
+  const canSplit =
+    gameState === GameState.Play &&
+    playState === PlayState.CanSplit &&
+    currentHand !== undefined &&
+    currentHand.length === 2 &&
+    currentHandBet > 0 &&
+    currentBalance >= currentHandBet;
 
-  // Initialize deck on mount
   useEffect(() => {
     initializeDeck();
-  }, []);
+  }, [initializeDeck]);
 
-  // Debug toggle
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
+    if (process.env.NODE_ENV !== 'development') {
+      return;
+    }
 
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'D' && e.shiftKey) {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'D' && event.shiftKey) {
         setShowDebug(!showDebug);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [showDebug, setShowDebug]);
+  }, [setShowDebug, showDebug]);
 
-  // Game state transitions
   useEffect(() => {
     if (gameState === GameState.Dealing) {
-      // Initialize hand bets with current bet
-      setHandBets([currentBet]);
-      setTotalWagered(currentBet);
-
-      // Check if deck needs reshuffling
       if (deck.deck.length < 52) {
-        deck.initializeDeck(6);
-        deck.shuffle();
+        initializeDeck();
       }
 
       setGameState(GameState.Animation);
@@ -114,159 +104,144 @@ const Game = () => {
     } else if (gameState === GameState.DealerCheck) {
       if (dealerCards[0]?.rank === CardRank.Ace) {
         setGameState(GameState.Insurance);
-      } else if (calculateValue(dealerCards, true) === 21) {
+      } else if (dealerCards.length === 2 && getResolvedHandValue(dealerCards) === 21) {
         setGameState(GameState.DealerPlay);
       } else {
         setGameState(GameState.Play);
       }
     } else if (gameState === GameState.DealerPlay) {
       setGameState(GameState.Animation);
-      setDealerCards([dealerCards[0], { ...dealerCards[1], isFlipped: false }]);
+      setDealerCards(
+        dealerCards.map((card, index) => (index === 1 ? { ...card, isFlipped: false } : card)),
+      );
       setGameState(GameState.DealerDeal);
     } else if (gameState === GameState.Results) {
       setPlayerCards(
         playerCards.map((hand) => hand.map((card) => ({ ...card, isFlipped: false }))),
       );
-
-      // Calculate total payouts using handBets
-      let totalPayout = 0;
-      playerCards.forEach((hand, index) => {
-        const playerValue = calculateValue(hand);
-        const dealerValue = calculateValue(dealerCards);
-        const handBet = handBets[index];
-
-        if (playerValue > 21 || (playerValue < dealerValue && dealerValue <= 21)) {
-          // Loss - no payout
-          totalPayout += 0;
-        } else if (playerValue === dealerValue) {
-          // Push - return bet
-          totalPayout += handBet;
-        } else if (playerValue === 21 && hand.length === 2 && playerCards.length === 1) {
-          // Blackjack - pay 3:2
-          totalPayout += Math.ceil(2.5 * handBet);
-        } else {
-          // Win - pay 1:1
-          totalPayout += 2 * handBet;
-        }
-      });
-
-      // Update balance with total payout
-      setCurrentBalance(currentBalance + totalPayout);
       setTimeout(() => setGameState(GameState.WrapUp), 3000);
     } else if (gameState === GameState.WrapUp) {
-      setPlayerCards([]);
-      setDealerCards([]);
-      setHandBets([]);
-      setTotalWagered(0);
-      setCurrentFocus(0);
-
-      // Check if player is out of money
-      if (currentBalance <= 0) {
-        setShowGameOver(true);
-      } else {
-        setGameState(GameState.Betting);
-      }
+      finalizeRound();
     }
   }, [gameState]);
 
-  // Dealer dealing logic
   useEffect(() => {
-    if (gameState === GameState.DealerDeal) {
-      if (calculateValue(dealerCards) < 17) {
-        setTimeout(() => {
-          addDealerCard(false);
-        }, 1000);
-      } else {
-        setTimeout(() => {
-          setGameState(GameState.Results);
-        }, 1000);
-      }
+    if (gameState !== GameState.DealerDeal) {
+      return;
     }
-  }, [dealerCards, gameState]);
 
-  // Play state logic
+    if (getResolvedHandValue(dealerCards) < 17) {
+      setTimeout(() => {
+        addDealerCard(false);
+      }, 1000);
+      return;
+    }
+
+    setTimeout(() => {
+      setGameState(GameState.Results);
+    }, 1000);
+  }, [addDealerCard, dealerCards, gameState, setGameState]);
+
   useEffect(() => {
-    if (gameState === GameState.Play) {
-      if (!playerCards[currentFocus]) {
-        setPlayState(PlayState.None);
-      } else if (calculateValue(playerCards[currentFocus]) > 21) {
-        setPlayState(PlayState.Bust);
-        setTimeout(() => {
-          moveFocus();
-        }, 1000);
-      } else if (playerCards[currentFocus].length > 2) {
-        setPlayState(PlayState.Post);
-      } else if (playerCards[currentFocus].length < 2) {
-        setPlayState(PlayState.None);
-      } else if (
-        playerCards[currentFocus][0].rank === playerCards[currentFocus][1].rank &&
-        playerCards.length < 4
-      ) {
-        setPlayState(PlayState.CanSplit);
-      } else if (playerCards.length > 1) {
-        setPlayState(PlayState.Split);
-      } else if (calculateValue(playerCards[currentFocus]) === 21) {
-        setPlayState(PlayState.Blackjack);
-        setTimeout(() => {
-          setGameState(GameState.Results);
-        }, 1250);
-      } else {
-        setPlayState(PlayState.Normal);
-      }
+    if (gameState !== GameState.Play) {
+      return;
     }
-  }, [gameState, playerCards, currentFocus]);
 
-  function displayPlayerCards() {
-    return (
-      <div className="player-cards">
-        {playerCards.map((row, rowIndex) => (
-          <div className="card-rows" key={`row-${rowIndex}`}>
-            <div className={`value ${currentFocus === rowIndex ? 'current' : ''}`}>
-              {calculateValue(row)}
-            </div>
+    if (!currentHand) {
+      setPlayState(PlayState.None);
+      return;
+    }
 
-            {row.map((card, cardIndex) => (
-              <Card
-                key={`${rowIndex}-${cardIndex}`}
-                rank={card.rank}
-                suit={card.suit}
-                style={{
-                  top: `${cardIndex * -118}%`,
-                  left: `${cardIndex * 13}%`,
-                  ...card.style,
-                }}
-                isFlipped={card.isFlipped}
-                animation={card.animation}
-              />
-            ))}
+    if (getResolvedHandValue(currentHand) > 21) {
+      setPlayState(PlayState.Bust);
+      setTimeout(() => {
+        moveFocus();
+      }, 1000);
+      return;
+    }
+
+    if (currentHand.length > 2) {
+      setPlayState(PlayState.Post);
+      return;
+    }
+
+    if (currentHand.length < 2) {
+      setPlayState(PlayState.None);
+      return;
+    }
+
+    if (currentHand[0].rank === currentHand[1].rank && playerCards.length < 4) {
+      setPlayState(PlayState.CanSplit);
+      return;
+    }
+
+    if (playerCards.length > 1) {
+      setPlayState(PlayState.Split);
+      return;
+    }
+
+    if (getResolvedHandValue(currentHand) === 21) {
+      setPlayState(PlayState.Blackjack);
+      setTimeout(() => {
+        setGameState(GameState.Results);
+      }, 1250);
+      return;
+    }
+
+    setPlayState(PlayState.Normal);
+  }, [currentHand, gameState, moveFocus, playerCards.length, setGameState, setPlayState]);
+
+  const renderPlayerCards = () => (
+    <div className="player-cards">
+      {playerCards.map((row, rowIndex) => (
+        <div className="card-rows" key={`row-${rowIndex}`}>
+          <div className={`value ${currentFocus === rowIndex ? 'current' : ''}`}>
+            {getVisibleHandValue(row)}
           </div>
-        ))}
-      </div>
-    );
-  }
 
-  function displayDealerCards() {
-    if (dealerCards.length > 0) {
-      return (
-        <div className="dealer-cards">
-          {dealerCards.map((card, cardIndex) => (
+          {row.map((card, cardIndex) => (
             <Card
-              key={cardIndex}
+              key={`${rowIndex}-${cardIndex}`}
               rank={card.rank}
               suit={card.suit}
+              style={{
+                top: `${cardIndex * -118}%`,
+                left: `${cardIndex * 13}%`,
+                ...card.style,
+              }}
               isFlipped={card.isFlipped}
               animation={card.animation}
-              style={{
-                top: `${cardIndex * -100}%`,
-                left: `${cardIndex * 30}%`,
-              }}
             />
           ))}
-          <div className={`value`}>{calculateValue(dealerCards)}</div>
         </div>
-      );
+      ))}
+    </div>
+  );
+
+  const renderDealerCards = () => {
+    if (dealerCards.length === 0) {
+      return null;
     }
-  }
+
+    return (
+      <div className="dealer-cards">
+        {dealerCards.map((card, cardIndex) => (
+          <Card
+            key={cardIndex}
+            rank={card.rank}
+            suit={card.suit}
+            isFlipped={card.isFlipped}
+            animation={card.animation}
+            style={{
+              top: `${cardIndex * -100}%`,
+              left: `${cardIndex * 30}%`,
+            }}
+          />
+        ))}
+        <div className="value">{getVisibleHandValue(dealerCards)}</div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -306,9 +281,7 @@ const Game = () => {
               ◀
             </button>
             <button
-              onClick={() =>
-                setCurrentFocus(Math.min(playerCards.length - 1, currentFocus + 1))
-              }
+              onClick={() => setCurrentFocus(Math.min(playerCards.length - 1, currentFocus + 1))}
               style={{ fontSize: '10px', padding: '2px 5px' }}
             >
               ▶
@@ -324,20 +297,21 @@ const Game = () => {
         stand={stand}
         split={split}
         double={double}
+        deal={beginDeal}
         gameState={gameState}
-        setGameState={setGameState}
-        currentBet={currentBet}
         playState={playState}
+        canDeal={canDeal}
+        canDouble={canDouble}
+        canSplit={canSplit}
       />
-      {displayDealerCards()}
-      {displayPlayerCards()}
+      {renderDealerCards()}
+      {renderPlayerCards()}
       <InsurancePrompt
         gameState={gameState}
-        setGameState={setGameState}
-        setCurrentBalance={setCurrentBalance}
-        currentBalance={currentBalance}
-        betAmount={currentBet}
-        dealerHas21={dealerCards.length > 0 && calculateValue(dealerCards) === 21}
+        onBuyInsurance={() => resolveInsuranceDecision(true)}
+        onDeclineInsurance={() => resolveInsuranceDecision(false)}
+        insuranceCost={insuranceCost}
+        canAffordInsurance={canAffordInsurance}
       />
 
       <BettingControls
