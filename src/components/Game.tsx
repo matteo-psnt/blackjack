@@ -285,7 +285,7 @@ const Game = () => {
             zIndex: 9999,
           }}
         >
-          <div>🐛 DEBUG MODE (Shift+D to toggle)</div>
+          <div>DEBUG MODE (Shift+D to toggle)</div>
           <div>Focus: {currentFocus}</div>
           <div>State: {GameState[gameState]}</div>
           <div>Play: {PlayState[playState]}</div>
