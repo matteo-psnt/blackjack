@@ -1,5 +1,4 @@
 import React from 'react';
-import '../styles/Chip.css';
 
 const chipImages = import.meta.glob('../assets/chips/3D/*.png', {
   eager: true,
@@ -16,9 +15,13 @@ const Chip: React.FC<ChipProps> = ({ value, style, onClick }) => {
   const chipImage = chipImages[`../assets/chips/3D/CHIP-${value.toString()}.png`];
 
   return (
-    <div className="chip-container" style={{ ...style }} onClick={onClick}>
-      <div className="chip">
-        <img src={chipImage} alt={`$${value}`} />
+    <div
+      className="relative h-[25%] w-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110"
+      style={{ ...style }}
+      onClick={onClick}
+    >
+      <div className="relative h-full w-full">
+        <img src={chipImage} alt={`$${value}`} className="absolute h-full w-full object-contain" />
       </div>
     </div>
   );
@@ -49,7 +52,7 @@ const ChipStack: React.FC<ChipStackProps> = ({ chipTotal, onChipClick }) => {
     }
   }
 
-  return <div className="chip-stack">{chipComponents}</div>;
+  return <div className="absolute h-full w-full">{chipComponents}</div>;
 };
 
 export default ChipStack;

@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
-import '../styles/Game.css';
 import Card from './Card';
 import { CardRank, GameState, PlayState } from './enums';
-import ChipStack from './ChipStack';
 import BettingControls from './BettingControls';
 import GameControls from './GameControls';
 import InsurancePrompt from './InsurancePrompt';
@@ -37,7 +35,6 @@ const Game = () => {
     addPlayerCard,
     addDealerCard,
     updateCurrentBet,
-    handleChipClick,
     restartGame,
     initializeDeck,
     beginDeal,
@@ -69,6 +66,8 @@ const Game = () => {
     currentHand.length === 2 &&
     currentHandBet > 0 &&
     currentBalance >= currentHandBet;
+  const formatDisplayAmount = (amount: number) =>
+    Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
 
   useEffect(() => {
     initializeDeck();
@@ -192,10 +191,19 @@ const Game = () => {
   }, [currentHand, gameState, moveFocus, playerCards.length, setGameState, setPlayState]);
 
   const renderPlayerCards = () => (
-    <div className="player-cards">
+    <div
+      className="absolute left-1/2 flex justify-center items-center gap-[4.5%] w-[103%] h-[22%] -translate-x-1/2 -translate-y-1/2"
+      style={{ top: '72%' }}
+    >
       {playerCards.map((row, rowIndex) => (
-        <div className="card-rows" key={`row-${rowIndex}`}>
-          <div className={`value ${currentFocus === rowIndex ? 'current' : ''}`}>
+        <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
+          <div
+            className={`flex justify-center items-center absolute top-[123%] left-[35%] w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
+              currentFocus === rowIndex
+                ? 'border-2 border-red-500 bg-red-600 text-white'
+                : 'border border-white/30 bg-black/60 text-white/80'
+            }`}
+          >
             {getVisibleHandValue(row)}
           </div>
 
@@ -224,7 +232,10 @@ const Game = () => {
     }
 
     return (
-      <div className="dealer-cards">
+      <div
+        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-[10%] h-[22%]"
+        style={{ top: '30%' }}
+      >
         {dealerCards.map((card, cardIndex) => (
           <Card
             key={cardIndex}
@@ -238,28 +249,18 @@ const Game = () => {
             }}
           />
         ))}
-        <div className="value">{getVisibleHandValue(dealerCards)}</div>
+        <div className="flex justify-center items-center absolute top-[123%] left-[35%] w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 border border-white/30 rounded-full bg-black/60 text-white text-[66%] font-bold tracking-tight">
+          {getVisibleHandValue(dealerCards)}
+        </div>
       </div>
     );
   };
 
   return (
-    <div>
+    <div className="flex flex-col h-full w-full">
+
       {showDebug && process.env.NODE_ENV === 'development' && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: '#0f0',
-            padding: '10px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-            zIndex: 9999,
-          }}
-        >
+        <div className="absolute top-2.5 right-2.5 bg-black/80 text-green-500 p-2.5 rounded font-mono text-xs z-[9999]">
           <div>DEBUG MODE (Shift+D to toggle)</div>
           <div>Focus: {currentFocus}</div>
           <div>State: {GameState[gameState]}</div>
@@ -267,22 +268,22 @@ const Game = () => {
           <div>Hands: {playerCards.length}</div>
           <div>Bets: {JSON.stringify(handBets)}</div>
           <div>Wagered: ${totalWagered}</div>
-          <div style={{ marginTop: '10px', display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-            <button onClick={double} style={{ fontSize: '10px', padding: '2px 5px' }}>
+          <div className="mt-2.5 flex gap-1.5 flex-wrap">
+            <button onClick={double} className="text-[10px] px-1.5 py-0.5">
               Double
             </button>
-            <button onClick={split} style={{ fontSize: '10px', padding: '2px 5px' }}>
+            <button onClick={split} className="text-[10px] px-1.5 py-0.5">
               Split
             </button>
             <button
               onClick={() => setCurrentFocus(Math.max(0, currentFocus - 1))}
-              style={{ fontSize: '10px', padding: '2px 5px' }}
+              className="text-[10px] px-1.5 py-0.5"
             >
               ◀
             </button>
             <button
               onClick={() => setCurrentFocus(Math.min(playerCards.length - 1, currentFocus + 1))}
-              style={{ fontSize: '10px', padding: '2px 5px' }}
+              className="text-[10px] px-1.5 py-0.5"
             >
               ▶
             </button>
@@ -290,39 +291,76 @@ const Game = () => {
         </div>
       )}
 
-      <div className="balance">${currentBalance}</div>
+      {/* Top bar */}
+      <div
+        className="flex items-center justify-between px-[4%] border-b border-white/[0.08] bg-black/20"
+        style={{ height: '11%' }}
+      >
+        <div className="flex flex-col gap-[0.15em]">
+          <span className="text-white/40 text-[0.32em] font-bold tracking-[0.2em] uppercase">
+            Balance
+          </span>
+          <span className="text-white text-[0.9em] font-bold leading-none">
+            <span className="text-red-500">$</span>
+            {formatDisplayAmount(currentBalance)}
+          </span>
+        </div>
+        <span className="text-white/20 text-[0.36em] tracking-[0.3em] uppercase font-bold">
+          Blackjack
+        </span>
+      </div>
 
-      <GameControls
-        hit={hit}
-        stand={stand}
-        split={split}
-        double={double}
-        deal={beginDeal}
-        gameState={gameState}
-        playState={playState}
-        canDeal={canDeal}
-        canDouble={canDouble}
-        canSplit={canSplit}
-      />
-      {renderDealerCards()}
-      {renderPlayerCards()}
-      <InsurancePrompt
-        gameState={gameState}
-        onBuyInsurance={() => resolveInsuranceDecision(true)}
-        onDeclineInsurance={() => resolveInsuranceDecision(false)}
-        insuranceCost={insuranceCost}
-        canAffordInsurance={canAffordInsurance}
-      />
+      {/* Play area */}
+      <div className="relative flex-1">
+        {dealerCards.length > 0 && (
+          <div className="absolute top-[8%] left-1/2 -translate-x-1/2 text-white/20 text-[0.28em] font-bold tracking-[0.2em] uppercase">
+            Dealer
+          </div>
+        )}
 
-      <BettingControls
-        currentBet={currentBet}
-        setBetAmount={updateCurrentBet}
-        gameState={gameState}
-      />
-      <div className="betting-area">
-        <ChipStack
-          chipTotal={gameState === GameState.Betting ? currentBet : totalWagered}
-          onChipClick={handleChipClick}
+        {renderDealerCards()}
+
+        {/* Center divider */}
+        <div className="absolute left-[6%] right-[6%] top-1/2 border-t border-white/[0.07]" />
+
+        {renderPlayerCards()}
+
+        {playerCards.length > 0 && playerCards[0].length > 0 && (
+          <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 text-white/20 text-[0.28em] font-bold tracking-[0.2em] uppercase">
+            You
+          </div>
+        )}
+
+        <InsurancePrompt
+          gameState={gameState}
+          onBuyInsurance={() => resolveInsuranceDecision(true)}
+          onDeclineInsurance={() => resolveInsuranceDecision(false)}
+          insuranceCost={insuranceCost}
+          canAffordInsurance={canAffordInsurance}
+        />
+      </div>
+
+      {/* Action bar */}
+      <div
+        className="flex items-center justify-between gap-4 px-[5%] border-t border-white/[0.08] bg-black/35"
+        style={{ height: '22%' }}
+      >
+        <BettingControls
+          currentBet={currentBet}
+          setBetAmount={updateCurrentBet}
+          gameState={gameState}
+        />
+        <GameControls
+          hit={hit}
+          stand={stand}
+          split={split}
+          double={double}
+          deal={beginDeal}
+          gameState={gameState}
+          playState={playState}
+          canDeal={canDeal}
+          canDouble={canDouble}
+          canSplit={canSplit}
         />
       </div>
 

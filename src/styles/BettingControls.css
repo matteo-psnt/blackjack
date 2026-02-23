@@ -11,14 +11,14 @@
 
 .chip-button {
   width: 23%;
-  margin-top: 1.5%;
   height: auto;
+  margin-top: 1.5%;
+  border-radius: 50%;
   cursor: pointer;
   transition:
     opacity 0.2s ease,
     transform 0.2s ease,
     box-shadow 0.2s ease;
-  border-radius: 50%;
 }
 
 .chip-button:hover {
@@ -31,15 +31,54 @@
   opacity: 0.7;
 }
 
-.current-bet {
+.current-bet-shell {
   position: absolute;
-  top: 92%;
+  top: 91.5%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 100%;
-  font-weight: bold;
-  color: #efefef;
-  padding: 0.5% 0.5%;
-  border-radius: 10%;
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  min-width: 8.8em;
+  padding: 0.45em 0.65em 0.55em;
+  border: 0.06em solid rgba(216, 179, 93, 0.24);
+  border-radius: 0.9em;
+  background:
+    linear-gradient(135deg, rgba(242, 219, 154, 0.08), transparent 28%),
+    linear-gradient(160deg, rgba(8, 23, 18, 0.92), rgba(14, 43, 33, 0.78));
+  box-shadow:
+    0 0.55em 1.6em rgba(0, 0, 0, 0.24),
+    inset 0 0 0 0.04em rgba(242, 219, 154, 0.06);
+}
+
+.current-bet-label {
+  color: rgba(246, 240, 220, 0.68);
+  font-size: 0.38em;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.current-bet {
+  min-width: 6em;
+  padding: 0.2em 0.35em;
+  border-radius: 0.5em;
+  text-align: center;
+  outline: none;
+  color: #f6f0dc;
+  font-size: 0.78em;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  border: 0.06em solid transparent;
+}
+
+.current-bet[contenteditable='true'] {
+  cursor: text;
+}
+
+.current-bet[contenteditable='true']:focus {
+  border-color: rgba(216, 179, 93, 0.38);
+  background: rgba(242, 219, 154, 0.06);
+  box-shadow: 0 0 0 0.08em rgba(216, 179, 93, 0.12);
 }
