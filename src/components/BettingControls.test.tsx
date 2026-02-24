@@ -11,7 +11,7 @@ describe('BettingControls', () => {
       <BettingControls currentBet={0} setBetAmount={setBetAmount} gameState={GameState.Betting} />,
     );
 
-    const betControl = screen.getByText('0$');
+    const betControl = screen.getByDisplayValue('$0');
     fireEvent.focus(betControl);
     fireEvent.keyDown(betControl, { key: 'ArrowDown' });
 
@@ -25,11 +25,9 @@ describe('BettingControls', () => {
       <BettingControls currentBet={10} setBetAmount={setBetAmount} gameState={GameState.Betting} />,
     );
 
-    const betControl = screen.getByText('10$');
+    const betControl = screen.getByDisplayValue('$10');
     fireEvent.focus(betControl);
-
-    betControl.textContent = '9999';
-    fireEvent.input(betControl);
+    fireEvent.change(betControl, { target: { value: '9999' } });
     fireEvent.blur(betControl);
 
     expect(setBetAmount).toHaveBeenCalledWith(9999);
@@ -38,6 +36,6 @@ describe('BettingControls', () => {
       <BettingControls currentBet={10} setBetAmount={setBetAmount} gameState={GameState.Betting} />,
     );
 
-    expect(screen.getByText('10$')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('$10')).toBeInTheDocument();
   });
 });

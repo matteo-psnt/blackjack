@@ -21,7 +21,7 @@ describe('InsurancePrompt', () => {
 
     render(<InsurancePrompt {...props} />);
 
-    expect(screen.getByText('Do you want to buy insurance for $7?')).toBeInTheDocument();
+    expect(screen.getByText('Buy insurance for $7?')).toBeInTheDocument();
   });
 
   it('disables buying insurance when the bankroll cannot cover it', () => {
@@ -34,7 +34,7 @@ describe('InsurancePrompt', () => {
     const buyButton = screen.getByRole('button', { name: 'Yes' });
     expect(buyButton).toBeDisabled();
     expect(buyButton).toHaveAttribute('title', 'Not enough chips to buy insurance');
-    expect(screen.getByText('Not enough chips available for insurance.')).toBeInTheDocument();
+    expect(screen.getByText('Not enough chips for insurance.')).toBeInTheDocument();
 
     fireEvent.click(buyButton);
     expect(props.onBuyInsurance).not.toHaveBeenCalled();

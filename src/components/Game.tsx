@@ -15,6 +15,7 @@ import {
 } from '../store/gameStore';
 
 type HandOutcome = 'bust' | 'lose' | 'push' | 'win' | 'blackjack';
+const getRankGameValue = (rank: CardRank) => Math.min(10, rank);
 
 const Game = () => {
   const {
@@ -56,6 +57,7 @@ const Game = () => {
     gameState === GameState.Play &&
     (playState === PlayState.Normal || playState === PlayState.CanSplit) &&
     currentHand !== undefined &&
+    playerCards.length === 1 &&
     currentHand.length === 2 &&
     currentHandBet > 0 &&
     currentBalance >= currentHandBet;
@@ -73,11 +75,13 @@ const Game = () => {
   const getHandOutcome = (playerHand: CardData[]): HandOutcome => {
     const playerValue = getResolvedHandValue(playerHand);
     const dealerValue = getResolvedHandValue(dealerCards);
+    const dealerHasBlackjack = dealerCards.length === 2 && dealerValue === 21;
     const isNaturalBlackjack =
       playerValue === 21 && playerHand.length === 2 && playerCards.length === 1;
 
     if (playerValue > 21) return 'bust';
-    if (isNaturalBlackjack && dealerValue !== 21) return 'blackjack';
+    if (isNaturalBlackjack) return dealerHasBlackjack ? 'push' : 'blackjack';
+    if (dealerHasBlackjack) return 'lose';
     if (dealerValue > 21 || playerValue > dealerValue) return 'win';
     if (playerValue === dealerValue) return 'push';
     return 'lose';
@@ -201,7 +205,10 @@ useEffect(() => {
       return;
     }
 
-    if (currentHand[0].rank === currentHand[1].rank && playerCards.length < 4) {
+    if (
+      getRankGameValue(currentHand[0].rank) === getRankGameValue(currentHand[1].rank) &&
+      playerCards.length < 4
+    ) {
       setPlayState(PlayState.CanSplit);
       return;
     }
