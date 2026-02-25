@@ -242,7 +242,7 @@ useEffect(() => {
         return (
           <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
             <div
-              className={`flex justify-center items-center absolute top-[123%] left-[35%] w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
+              className={`flex justify-center items-center absolute top-[123%] left-1/2 w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
                 outcome !== null
                   ? getOutcomeBadgeClasses(outcome)
                   : currentFocus === rowIndex
@@ -254,31 +254,37 @@ useEffect(() => {
             </div>
 
             {outcome !== null && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
-                className={`absolute font-bold text-[60%] tracking-tight whitespace-nowrap ${getNetColor(outcome)}`}
-                style={{ top: '158%', left: '35%', transform: 'translateX(-50%) translateY(-50%)' }}
-              >
-                {formatNet(outcome, net)}
-              </motion.div>
+              <div className="absolute" style={{ top: '158%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25, duration: 0.2 }}
+                  className={`font-bold text-[60%] whitespace-nowrap ${getNetColor(outcome)}`}
+                >
+                  {formatNet(outcome, net)}
+                </motion.div>
+              </div>
             )}
 
-            {row.map((card, cardIndex) => (
-              <Card
-                key={`${rowIndex}-${cardIndex}`}
-                rank={card.rank}
-                suit={card.suit}
-                style={{
-                  top: `${cardIndex * -118}%`,
-                  left: `${cardIndex * 13}%`,
-                  ...card.style,
-                }}
-                isFlipped={card.isFlipped}
-                animation={card.animation}
-              />
-            ))}
+            {row.map((card, cardIndex) => {
+              // Center the card stack: offset so the group is always centered in the column
+              // card width ≈ 65% of column, cards spaced 13% apart
+              const baseLeft = 17.5 - (row.length - 1) * 6.5;
+              return (
+                <Card
+                  key={`${rowIndex}-${cardIndex}`}
+                  rank={card.rank}
+                  suit={card.suit}
+                  style={{
+                    top: `${cardIndex * -118}%`,
+                    left: `${baseLeft + cardIndex * 13}%`,
+                    ...card.style,
+                  }}
+                  isFlipped={card.isFlipped}
+                  animation={card.animation}
+                />
+              );
+            })}
           </div>
         );
       })}
@@ -308,7 +314,7 @@ useEffect(() => {
             }}
           />
         ))}
-        <div className="flex justify-center items-center absolute top-[123%] left-[35%] w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 border border-white/30 rounded-full bg-black/60 text-white text-[66%] font-bold tracking-tight">
+        <div className="flex justify-center items-center absolute top-[123%] left-1/2 w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 border border-white/30 rounded-full bg-black/60 text-white text-[66%] font-bold tracking-tight">
           {getVisibleHandValue(dealerCards)}
         </div>
       </div>
