@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Card from './Card';
 import { CardRank, GameState, PlayState } from './enums';
@@ -71,6 +71,44 @@ const Game = () => {
   const formatDisplayAmount = (amount: number) =>
     Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
   const showResults = gameState === GameState.Results || gameState === GameState.WrapUp;
+
+  // Animated balance counter
+  const [displayedBalance, setDisplayedBalance] = useState(currentBalance);
+  const [balanceTrend, setBalanceTrend] = useState<'up' | 'down' | null>(null);
+  const balanceFromRef = useRef(currentBalance);
+  const balanceRafRef = useRef<number>(0);
+  const balanceTrendTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    const from = balanceFromRef.current;
+    const to = currentBalance;
+    if (from === to) return;
+
+    setBalanceTrend(to > from ? 'up' : 'down');
+    if (balanceTrendTimer.current) clearTimeout(balanceTrendTimer.current);
+    cancelAnimationFrame(balanceRafRef.current);
+
+    const duration = 600;
+    const startTime = performance.now();
+
+    const animate = (time: number) => {
+      const t = Math.min((time - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const value = from + (to - from) * eased;
+      balanceFromRef.current = value;
+      setDisplayedBalance(Math.round(value));
+      if (t < 1) {
+        balanceRafRef.current = requestAnimationFrame(animate);
+      } else {
+        balanceFromRef.current = to;
+        setDisplayedBalance(to);
+        balanceTrendTimer.current = setTimeout(() => setBalanceTrend(null), 500);
+      }
+    };
+
+    balanceRafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(balanceRafRef.current);
+  }, [currentBalance]);
 
   const getHandOutcome = (playerHand: CardData[]): HandOutcome => {
     const playerValue = getResolvedHandValue(playerHand);
@@ -333,9 +371,12 @@ useEffect(() => {
           <span className="text-white/40 text-[0.32em] font-bold tracking-[0.2em] uppercase">
             Balance
           </span>
-          <span className="text-white text-[0.9em] font-bold leading-none">
+          <span className={`text-[0.9em] font-bold leading-none transition-colors duration-300 ${
+            balanceTrend === 'up' ? 'text-emerald-400' :
+            balanceTrend === 'down' ? 'text-red-400' : 'text-white'
+          }`}>
             <span className="text-red-500">$</span>
-            {formatDisplayAmount(currentBalance)}
+            {formatDisplayAmount(displayedBalance)}
           </span>
         </div>
         <span className="text-white/20 text-[0.36em] tracking-[0.3em] uppercase font-bold">
