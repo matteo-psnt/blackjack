@@ -70,6 +70,19 @@ describe('GameControls', () => {
     },
   );
 
+  it('shows a bust status instead of action buttons when the hand is over 21', () => {
+    const props = createGameControlsProps({
+      gameState: GameState.Play,
+      playState: PlayState.Bust,
+    });
+
+    render(<GameControls {...props} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Busted');
+    expect(screen.queryByRole('button', { name: 'Hit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Stand' })).not.toBeInTheDocument();
+  });
+
   it('renders no controls outside betting and play', () => {
     const props = createGameControlsProps({
       gameState: GameState.DealerPlay,
