@@ -1,28 +1,29 @@
 html {
-    height: 100%;
-    width: 100%;
+  height: 100%;
+  width: 100%;
 }
 
-html, body {
-    font-family: Mulish, sans-serif;
-    background-color: #1E1E1E;
-    padding: 0;
-    margin: 0;
+html,
+body {
+  font-family: Mulish, sans-serif;
+  background-color: #1e1e1e;
+  padding: 0;
+  margin: 0;
 }
 
 .App {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .game-container {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    background: url('../assets/background/backdrop.svg') no-repeat center center fixed;
-    background-size: cover;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: url('../assets/background/backdrop.svg') no-repeat center center fixed;
+  background-size: cover;
 }

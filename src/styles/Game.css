@@ -1,70 +1,69 @@
 .dealer-cards {
-    position: absolute;
-    top: 16%;
-    left: 50%;
-    width: 7.5%;
-    height: 15%;
-    transform: translate(-50%, -50%);
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  width: 7.5%;
+  height: 15%;
+  transform: translate(-50%, -50%);
 }
 
 .player-cards {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 4.5%;
-    width: 103%;
-    height: 15%;
-    position: absolute;
-    top: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4.5%;
+  width: 103%;
+  height: 15%;
+  position: absolute;
+  top: 50%;
 }
 
 .card-rows {
-    position: relative;
-    width: 10%;
-    height: 100%;
+  position: relative;
+  width: 10%;
+  height: 100%;
 }
 
-
 .betting-area {
-    position: absolute;
-    top: 80%;
-    left: 50%;
-    height: 16%;
-    width: 6.5%;
-    transform: translate(-50%, -50%);
-    border-radius: 10%;
-    border: 0.15em solid rgba(255, 255, 255, 0.77);
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  height: 16%;
+  width: 6.5%;
+  transform: translate(-50%, -50%);
+  border-radius: 10%;
+  border: 0.15em solid rgba(255, 255, 255, 0.77);
 }
 
 .value {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    top: 123%;
-    left: 35%;
-    height: 26%;
-    width: 25%;
-    border-radius: 20%;
-    transform: translate(-50%, -50%);
-    font-size: 70%;
-    color: white;
-    font-weight: bold;
-    background: #1E1E1E;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 123%;
+  left: 35%;
+  height: 26%;
+  width: 25%;
+  border-radius: 20%;
+  transform: translate(-50%, -50%);
+  font-size: 70%;
+  color: white;
+  font-weight: bold;
+  background: #1e1e1e;
 }
 
 .value.current {
-    background: #fffc93;
-    color: #312c1f;
-    box-shadow: 0 0 0.2em rgba(255, 249, 64, 0.50);
+  background: #fffc93;
+  color: #312c1f;
+  box-shadow: 0 0 0.2em rgba(255, 249, 64, 0.5);
 }
 
 .balance {
-    position: absolute;
-    top: 15%;
-    left: 15%;
-    transform: translate(-50%, -50%);
-    font-size: 3em;
-    color: #efefef;
-    font-weight: bold;
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  transform: translate(-50%, -50%);
+  font-size: 3em;
+  color: #efefef;
+  font-weight: bold;
 }

@@ -1,28 +1,28 @@
 .prompt-container {
-    background-color: #f0f0f0;
-    border-radius: 10%;
-    padding: 2.5%;
-    text-align: center;
-    box-shadow: 0 0.2em 0.2em rgba(0, 0, 0, 0.1);
-    width: 20%;
-    transform: translate(-50%, -50%);
-    position: absolute;
-    top: 45%;
-    left: 50%;
+  background-color: #f0f0f0;
+  border-radius: 10%;
+  padding: 2.5%;
+  text-align: center;
+  box-shadow: 0 0.2em 0.2em rgba(0, 0, 0, 0.1);
+  width: 20%;
+  transform: translate(-50%, -50%);
+  position: absolute;
+  top: 45%;
+  left: 50%;
 }
 
 .prompt-button {
-    background-color: #9900ff;
-    color: white;
-    border: none;
-    padding: 5% 10%;
-    margin: 0 9%;
-    border-radius: 5%;
-    cursor: pointer;
-    font-size: 0.7em;
-    transition: background-color 0.3s ease;
+  background-color: #9900ff;
+  color: white;
+  border: none;
+  padding: 5% 10%;
+  margin: 0 9%;
+  border-radius: 5%;
+  cursor: pointer;
+  font-size: 0.7em;
+  transition: background-color 0.3s ease;
 }
 
 .prompt-button:hover {
-    background-color: #6328b2;
+  background-color: #6328b2;
 }

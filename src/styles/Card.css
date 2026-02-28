@@ -1,119 +1,119 @@
 .card-container {
-    position: relative;
-    height: 100%;
-    width: 65%;
-    transform: none;
+  position: relative;
+  height: 100%;
+  width: 65%;
+  transform: none;
 }
 
-.front, .back {
-    position: absolute;
-    height: 100%;
-    width: auto;
-    object-fit: contain;
-    border-radius: 4.5%;
-    box-shadow: 0 0.10em 0.15em rgba(0, 0, 0, 0.277);
-    backface-visibility: hidden;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
+.front,
+.back {
+  position: absolute;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4.5%;
+  box-shadow: 0 0.1em 0.15em rgba(0, 0, 0, 0.277);
+  backface-visibility: hidden;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
 }
 
 .front {
-    transform: rotateY(0deg);
+  transform: rotateY(0deg);
 }
 
 .back {
-    transform: rotateY(180deg);
+  transform: rotateY(180deg);
 }
 
 .card.flipped .front {
-    transform: rotateY(180deg);
+  transform: rotateY(180deg);
 }
 
 .card.flipped .back {
-    transform: rotateY(0deg);
+  transform: rotateY(0deg);
 }
 
 .slideUp {
-    animation: slideUp 0.5s ease-in-out;
+  animation: slideUp 0.5s ease-in-out;
 }
 
 .slideDown {
-    animation: slideDown 0.5s ease-in-out;
+  animation: slideDown 0.5s ease-in-out;
 }
 
 .slideRight {
-    animation: slideRight 1s ease-in-out;
+  animation: slideRight 1s ease-in-out;
 }
 
 .slideLeft {
-    animation: slideLeft 1s ease-in-out;
+  animation: slideLeft 1s ease-in-out;
 }
 
 .slideDownRight {
-    animation: slideDownRight 1s ease-in-out;
+  animation: slideDownRight 1s ease-in-out;
 }
 
 .doubleDown {
-    animation: doubleDown 1s ease-in-out;
+  animation: doubleDown 1s ease-in-out;
 }
 
 @keyframes slideUp {
-    from {
-        transform: translateY(50%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+  from {
+    transform: translateY(50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slideDown {
-    from {
-        transform: translateY(-50%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+  from {
+    transform: translateY(-50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slideRight {
-    from {
-        transform: translateX(-72.5%);
-    }
-    to {
-        transform: translateX(0);
-    }
+  from {
+    transform: translateX(-72.5%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideLeft {
-    from {
-        transform: translateX(72.5%);
-    }
-    to {
-        transform: translateX(0);
-    }
+  from {
+    transform: translateX(72.5%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideDownRight {
-    from {
-        transform: translate(-59.5%, -18%);
-    }
-    to {
-        transform: translate(0, 0);
-    }
+  from {
+    transform: translate(-59.5%, -18%);
+  }
+  to {
+    transform: translate(0, 0);
+  }
 }
 
 @keyframes doubleDown {
-    from {
-        transform: translate(50%, -150%) rotate(0deg);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) rotate(90deg);
-        opacity: 1;
-    }
+  from {
+    transform: translate(50%, -150%) rotate(0deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) rotate(90deg);
+    opacity: 1;
+  }
 }
-

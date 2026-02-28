@@ -1,27 +1,27 @@
 .player-controls {
-    position: absolute;
-    top: 80%;
-    left: 60%;
-    display: flex;
-    justify-content: space-around;
+  position: absolute;
+  top: 80%;
+  left: 60%;
+  display: flex;
+  justify-content: space-around;
 }
 
 .player-controls button {
-    padding: 0.625em 1.25em;
-    font-size: 1em;
-    cursor: pointer;
-    border: none;
-    border-radius: 0.3125em;
-    margin: 0.3125em;
-    transition: background-color 0.3s;
+  padding: 0.625em 1.25em;
+  font-size: 1em;
+  cursor: pointer;
+  border: none;
+  border-radius: 0.3125em;
+  margin: 0.3125em;
+  transition: background-color 0.3s;
 }
 
 .player-controls button:hover {
-    background-color: #555;
-    color: white;
+  background-color: #555;
+  color: white;
 }
 
 .player-controls button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
+  background-color: #ccc;
+  cursor: not-allowed;
 }
