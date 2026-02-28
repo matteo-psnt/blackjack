@@ -70,11 +70,12 @@ const cardVariants = {
   },
 
   collect: (target?: CardProps['animationTarget']) => ({
+    initial: { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 },
     animate: {
       x: target?.x ?? 0,
       y: target?.y ?? 0,
       rotate: target?.rotate ?? 0,
-      scale: target?.scale ?? 0.98,
+      scale: target?.scale ?? 1,
       opacity: target?.opacity ?? 1,
     },
     transition: {
