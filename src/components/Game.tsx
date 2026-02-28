@@ -1,229 +1,59 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import '../styles/Game.css';
 import Card from './Card';
-import { CardAnimation, CardRank, CardSuit, GameState, PlayState } from './enums';
-import Deck from './Deck';
+import { CardRank, GameState, PlayState } from './enums';
 import ChipStack from './ChipStack';
 import BettingControls from './BettingControls';
 import GameControls from './GameControls';
 import InsurancePrompt from './InsurancePrompt';
 import GameOver from './GameOver';
+import { useGameStore } from '../store/gameStore';
 
 const Game = () => {
-  const [deck] = useState(new Deck());
-  const [playerCards, setPlayerCards] = useState<
-    Array<
-      Array<{
-        rank: CardRank;
-        suit: CardSuit;
-        isFlipped?: boolean;
-        animation?: CardAnimation;
-        style?: React.CSSProperties;
-      }>
-    >
-  >([]);
-  const [dealerCards, setDealerCards] = useState<
-    Array<{ rank: CardRank; suit: CardSuit; isFlipped?: boolean; animation?: CardAnimation }>
-  >([]);
-  const [handBets, setHandBets] = useState<number[]>([]); // Track bet for each hand
-  const [totalWagered, setTotalWagered] = useState(0); // Total amount wagered (for display)
-  const [currentFocus, setCurrentFocus] = useState(0);
-  const [currentBet, setCurrentBet] = useState(100);
-  const [currentBalance, setCurrentBalance] = useState(900);
-  const [gameState, setGameState] = useState(GameState.Betting);
-  const [playState, setPlayState] = useState(PlayState.None);
-  const [showGameOver, setShowGameOver] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
+  // Get state from Zustand
+  const {
+    playerCards,
+    dealerCards,
+    handBets,
+    totalWagered,
+    currentFocus,
+    currentBet,
+    currentBalance,
+    gameState,
+    playState,
+    showGameOver,
+    showDebug,
+    deck,
+  } = useGameStore();
 
-  // Shuffle deck only once on mount
-  useEffect(() => {
-    deck.shuffle();
-  }, []);
+  // Get actions from Zustand
+  const {
+    setPlayerCards,
+    setDealerCards,
+    setHandBets,
+    setTotalWagered,
+    setCurrentFocus,
+    setCurrentBalance,
+    setGameState,
+    setPlayState,
+    setShowGameOver,
+    setShowDebug,
+    addPlayerCard,
+    addDealerCard,
+    updateCurrentBet,
+    handleChipClick,
+    restartGame,
+    initializeDeck,
+    hit,
+    stand,
+    split,
+    double,
+    moveFocus,
+  } = useGameStore();
 
-  // Debug toggle with Shift+D (development only)
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
-
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'D' && e.shiftKey) {
-        setShowDebug((prev) => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
-
-  const updateCurrentBet = (newBet: number) => {
-    const betDifference = newBet - currentBet;
-    const newBalance = currentBalance - betDifference;
-
-    if (newBet >= 0 && newBalance >= 0) {
-      setCurrentBet(newBet);
-      setCurrentBalance(newBalance);
-    }
-  };
-
-  const handleChipClick = (chipValue: number) => {
-    setCurrentBet(currentBet - chipValue);
-    setCurrentBalance(currentBalance + chipValue);
-  };
-
-  const restartGame = () => {
-    setCurrentBalance(900);
-    setCurrentBet(100);
-    setPlayerCards([]);
-    setDealerCards([]);
-    setHandBets([]);
-    setTotalWagered(0);
-    setCurrentFocus(0);
-    setGameState(GameState.Betting);
-    setPlayState(PlayState.None);
-    setShowGameOver(false);
-    // Reshuffle deck for new game
-    deck.initializeDeck(6);
-    deck.shuffle();
-  };
-
-  const addPlayerCard = (focusIndex: number) => {
-    const newCard = deck.dealCard();
-    if (newCard) {
-      setPlayerCards((currentPlayerCards) => {
-        const newPlayerCards = [...currentPlayerCards];
-        if (!newPlayerCards[focusIndex]) {
-          newPlayerCards[focusIndex] = [];
-        }
-        newPlayerCards[focusIndex] = [
-          ...newPlayerCards[focusIndex],
-          { ...newCard, animation: CardAnimation.SlideDown },
-        ];
-        return newPlayerCards;
-      });
-    }
-  };
-
-  const addDealerCard = (isFlipped: boolean) => {
-    const newCard = deck.dealCard();
-    if (newCard) {
-      setDealerCards((currentDealerCards) => {
-        return [
-          ...currentDealerCards,
-          { ...newCard, animation: CardAnimation.SlideUp, isFlipped: isFlipped },
-        ];
-      });
-    }
-  };
-
-  const moveFocus = () => {
-    if (currentFocus <= 0) {
-      setGameState(GameState.DealerPlay);
-      setCurrentFocus(-1);
-    } else {
-      setCurrentFocus(currentFocus - 1);
-    }
-  };
-
-  const hit = () => {
-    addPlayerCard(currentFocus);
-  };
-
-  const stand = () => {
-    moveFocus();
-  };
-
-  const split = () => {
-    setGameState(GameState.Animation);
-
-    // Calculate the split bet amount (same as current hand's bet)
-    const splitBet = handBets[currentFocus];
-
-    // Deduct additional bet from balance for the second hand
-    setCurrentBalance(currentBalance - splitBet);
-
-    // Update total wagered to show double the chips
-    setTotalWagered(totalWagered + splitBet);
-
-    // Add an additional bet for the new split hand
-    setHandBets((currentBets) => {
-      const newBets = [...currentBets];
-      newBets.splice(currentFocus, 1, splitBet, splitBet); // Replace current bet with two equal bets
-      return newBets;
-    });
-
-    setPlayerCards((currentCards) => {
-      let newCards = [...currentCards];
-      if (newCards[currentFocus] && newCards[currentFocus].length === 2) {
-        newCards = newCards.map((cardGroup, index) => {
-          const animation =
-            index < currentFocus ? CardAnimation.SlideLeft : CardAnimation.SlideRight;
-          return cardGroup.map((card) => ({ ...card, animation }));
-        });
-
-        const [cardLeft, cardRight] = newCards[currentFocus];
-        newCards.splice(currentFocus, 1);
-        newCards.splice(
-          currentFocus,
-          0,
-          [{ ...cardLeft, animation: CardAnimation.SlideLeft }],
-          [{ ...cardRight, animation: CardAnimation.SlideDownRight }],
-        );
-      }
-      return newCards;
-    });
-    setTimeout(() => {
-      setPlayerCards((currentCards) =>
-        currentCards.map((cardGroup) =>
-          cardGroup.map((card) => ({ ...card, animation: undefined })),
-        ),
-      );
-    }, 1000);
-    setTimeout(() => addPlayerCard(currentFocus), 1500);
-    setTimeout(() => addPlayerCard(currentFocus + 1), 2000);
-    setCurrentFocus(currentFocus + 1);
-    setTimeout(() => setGameState(GameState.Play), 2500);
-  };
-
-  const double = () => {
-    // Calculate the additional bet needed (current hand's bet)
-    const additionalBet = handBets[currentFocus];
-
-    // Deduct additional bet from balance
-    setCurrentBalance(currentBalance - additionalBet);
-
-    // Update total wagered
-    setTotalWagered(totalWagered + additionalBet);
-
-    // Double the bet for this hand
-    setHandBets((currentBets) => {
-      const newBets = [...currentBets];
-      newBets[currentFocus] = newBets[currentFocus] * 2;
-      return newBets;
-    });
-
-    const newCard = deck.dealCard();
-    if (newCard) {
-      setPlayerCards((currentCards) => {
-        const newCards = [...currentCards];
-        if (!newCards[currentFocus]) {
-          newCards[currentFocus] = [];
-        }
-        newCards[currentFocus] = [
-          ...newCards[currentFocus],
-          {
-            ...newCard,
-            animation: CardAnimation.DoubleDown,
-            isFlipped: true,
-            style: { transform: `rotate(90deg)`, left: `32%` },
-          },
-        ];
-        return newCards;
-      });
-    }
-    setTimeout(() => moveFocus(), 1000);
-  };
-
+  // Calculate hand value
   const calculateValue = (
-    hand: Array<{ rank: CardRank; suit: CardSuit; isFlipped?: boolean }>,
+    hand: Array<{ rank: CardRank; isFlipped?: boolean }>,
     includeUnflipped?: boolean,
   ) => {
     let value = 0;
@@ -243,13 +73,33 @@ const Game = () => {
     return value;
   };
 
+  // Initialize deck on mount
+  useEffect(() => {
+    initializeDeck();
+  }, []);
+
+  // Debug toggle
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'D' && e.shiftKey) {
+        setShowDebug(!showDebug);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showDebug, setShowDebug]);
+
+  // Game state transitions
   useEffect(() => {
     if (gameState === GameState.Dealing) {
       // Initialize hand bets with current bet
       setHandBets([currentBet]);
       setTotalWagered(currentBet);
 
-      // Check if deck needs reshuffling (less than 20% cards remaining)
+      // Check if deck needs reshuffling
       if (deck.deck.length < 52) {
         deck.initializeDeck(6);
         deck.shuffle();
@@ -262,7 +112,7 @@ const Game = () => {
       setTimeout(() => addDealerCard(true), 1500);
       setTimeout(() => setGameState(GameState.DealerCheck), 1500);
     } else if (gameState === GameState.DealerCheck) {
-      if (dealerCards[0].rank === CardRank.Ace) {
+      if (dealerCards[0]?.rank === CardRank.Ace) {
         setGameState(GameState.Insurance);
       } else if (calculateValue(dealerCards, true) === 21) {
         setGameState(GameState.DealerPlay);
@@ -271,16 +121,11 @@ const Game = () => {
       }
     } else if (gameState === GameState.DealerPlay) {
       setGameState(GameState.Animation);
-      setDealerCards((currentCards) => [currentCards[0], { ...currentCards[1], isFlipped: false }]);
+      setDealerCards([dealerCards[0], { ...dealerCards[1], isFlipped: false }]);
       setGameState(GameState.DealerDeal);
     } else if (gameState === GameState.Results) {
-      setPlayerCards((currentCards) =>
-        currentCards.map((deck) =>
-          deck.map((card) => ({
-            ...card,
-            isFlipped: false,
-          })),
-        ),
+      setPlayerCards(
+        playerCards.map((hand) => hand.map((card) => ({ ...card, isFlipped: false }))),
       );
 
       // Calculate total payouts using handBets
@@ -297,10 +142,10 @@ const Game = () => {
           // Push - return bet
           totalPayout += handBet;
         } else if (playerValue === 21 && hand.length === 2 && playerCards.length === 1) {
-          // Blackjack - pay 3:2 (return bet + 1.5x bet = 2.5x bet)
+          // Blackjack - pay 3:2
           totalPayout += Math.ceil(2.5 * handBet);
         } else {
-          // Win - pay 1:1 (return bet + 1x bet = 2x bet)
+          // Win - pay 1:1
           totalPayout += 2 * handBet;
         }
       });
@@ -324,6 +169,7 @@ const Game = () => {
     }
   }, [gameState]);
 
+  // Dealer dealing logic
   useEffect(() => {
     if (gameState === GameState.DealerDeal) {
       if (calculateValue(dealerCards) < 17) {
@@ -338,6 +184,7 @@ const Game = () => {
     }
   }, [dealerCards, gameState]);
 
+  // Play state logic
   useEffect(() => {
     if (gameState === GameState.Play) {
       if (!playerCards[currentFocus]) {
@@ -459,7 +306,9 @@ const Game = () => {
               ◀
             </button>
             <button
-              onClick={() => setCurrentFocus(Math.min(playerCards.length - 1, currentFocus + 1))}
+              onClick={() =>
+                setCurrentFocus(Math.min(playerCards.length - 1, currentFocus + 1))
+              }
               style={{ fontSize: '10px', padding: '2px 5px' }}
             >
               ▶
