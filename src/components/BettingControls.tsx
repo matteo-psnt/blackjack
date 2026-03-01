@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { GameState } from './enums';
+import { GameState } from '../game/model';
 
 interface BettingControlsProps {
   currentBet: number;

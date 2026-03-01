@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import './styles/index.css';
 import Game from './components/Game';
 
 const FINAL_FELT_TEXTURE_STYLE: React.CSSProperties = {

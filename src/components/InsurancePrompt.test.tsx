@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import InsurancePrompt from './InsurancePrompt';
-import { GameState } from './enums';
+import { GameState } from '../game/model';
 import { createInsurancePromptProps } from '../test/factories';
 
 describe('InsurancePrompt', () => {

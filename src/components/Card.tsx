@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import blank from '../assets/cards/blank.svg';
 import back from '../assets/cards/back.svg';
-import { CardRank, CardSuit } from './enums';
-import { CardAnimation } from './enums';
+import { CardAnimation, CardRank, CardSuit } from '../game/model';
 
 const cardImages = import.meta.glob('../assets/cards/*.svg', {
   eager: true,

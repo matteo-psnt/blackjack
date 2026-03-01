@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameState } from './enums';
+import { GameState } from '../game/model';
 
 interface InsurancePromptProps {
   gameState: GameState;

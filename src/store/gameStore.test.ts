@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Deck from '../components/Deck';
-import { CardRank, CardSuit, GameState, PlayState } from '../components/enums';
+import { CardRank, CardSuit, Deck, GameState, PlayState } from '../game/model';
 import { getInsuranceCost, useGameStore } from './gameStore';
 
 const resetStore = () => {
-  localStorage.removeItem('blackjack-debug');
+  if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') {
+    localStorage.removeItem('blackjack-debug');
+  }
+
   useGameStore.getState().restartGame();
   useGameStore.setState({
     playerCards: [],
