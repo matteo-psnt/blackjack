@@ -13,7 +13,7 @@ export function useBalanceCounter(
   const [balanceTrend, setBalanceTrend] = useState<'up' | 'down' | null>(null);
   const balanceFromRef = useRef(currentBalance);
   const balanceRafRef = useRef<number>(0);
-  const balanceTrendTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const balanceTrendTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const preDealBalanceRef = useRef(currentBalance);
 
   const handleDeal = useCallback(() => {
