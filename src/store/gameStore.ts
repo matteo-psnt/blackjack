@@ -19,7 +19,6 @@ interface GameStore {
   gameState: GameState;
   playState: PlayState;
   showGameOver: boolean;
-  showDebug: boolean;
   setPlayerCards: (cards: Card[][]) => void;
   setDealerCards: (cards: Card[]) => void;
   setHandBets: (bets: number[]) => void;
@@ -31,7 +30,6 @@ interface GameStore {
   setGameState: (state: GameState) => void;
   setPlayState: (state: PlayState) => void;
   setShowGameOver: (show: boolean) => void;
-  setShowDebug: (show: boolean) => void;
   initializeDeck: () => void;
   beginDeal: () => void;
   addPlayerCard: (focusIndex: number) => void;
@@ -64,18 +62,6 @@ const createShuffledDeck = () => {
   return deck;
 };
 
-const getStoredDebugPreference = () => {
-  if (
-    typeof window === 'undefined' ||
-    typeof localStorage === 'undefined' ||
-    typeof localStorage.getItem !== 'function'
-  ) {
-    return false;
-  }
-
-  return localStorage.getItem('blackjack-debug') === 'true';
-};
-
 const getNextStagedBet = (preferredBet: number, availableBalance: number) => {
   const maxAffordableBet = Math.max(0, Math.floor(availableBalance));
   return Math.min(toWholeDollar(preferredBet), maxAffordableBet);
@@ -98,7 +84,6 @@ const getInitialState = () => ({
   gameState: GameState.Betting,
   playState: PlayState.None,
   showGameOver: false,
-  showDebug: getStoredDebugPreference(),
 });
 
 export const useGameStore = create<GameStore>()(
@@ -137,17 +122,6 @@ export const useGameStore = create<GameStore>()(
         setGameState: (state) => set({ gameState: state }, false, 'setGameState'),
         setPlayState: (state) => set({ playState: state }, false, 'setPlayState'),
         setShowGameOver: (show) => set({ showGameOver: show }, false, 'setShowGameOver'),
-        setShowDebug: (show) => {
-          if (
-            typeof window !== 'undefined' &&
-            typeof localStorage !== 'undefined' &&
-            typeof localStorage.setItem === 'function'
-          ) {
-            localStorage.setItem('blackjack-debug', String(show));
-          }
-
-          set({ showDebug: show }, false, 'setShowDebug');
-        },
         initializeDeck: () => set({ deck: createShuffledDeck() }, false, 'initializeDeck'),
         beginDeal: () => {
           const { currentBet, currentBalance } = get();
