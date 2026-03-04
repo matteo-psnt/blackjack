@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { CardRank, CardSuit, GameState, PlayState, CardAnimation } from '../components/enums';
 import Deck from '../components/Deck';
 
@@ -52,33 +53,43 @@ interface GameStore {
   moveFocus: () => void;
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
-  // Initial state
-  deck: new Deck(),
-  playerCards: [],
-  dealerCards: [],
-  handBets: [],
-  totalWagered: 0,
-  currentFocus: 0,
-  currentBet: 100,
-  currentBalance: 900,
-  gameState: GameState.Betting,
-  playState: PlayState.None,
-  showGameOver: false,
-  showDebug: false,
+export const useGameStore = create<GameStore>()(
+  devtools(
+    (set, get) => ({
+      // Initial state
+      deck: new Deck(),
+      playerCards: [],
+      dealerCards: [],
+      handBets: [],
+      totalWagered: 0,
+      currentFocus: 0,
+      currentBet: 100,
+      currentBalance: 900,
+      gameState: GameState.Betting,
+      playState: PlayState.None,
+      showGameOver: false,
+      showDebug: typeof window !== 'undefined'
+        ? localStorage.getItem('blackjack-debug') === 'true'
+        : false,
 
   // Simple setters
-  setPlayerCards: (cards) => set({ playerCards: cards }),
-  setDealerCards: (cards) => set({ dealerCards: cards }),
-  setHandBets: (bets) => set({ handBets: bets }),
-  setTotalWagered: (amount) => set({ totalWagered: amount }),
-  setCurrentFocus: (focus) => set({ currentFocus: focus }),
-  setCurrentBet: (bet) => set({ currentBet: bet }),
-  setCurrentBalance: (balance) => set({ currentBalance: balance }),
-  setGameState: (state) => set({ gameState: state }),
-  setPlayState: (state) => set({ playState: state }),
-  setShowGameOver: (show) => set({ showGameOver: show }),
-  setShowDebug: (show) => set({ showDebug: show }),
+  setPlayerCards: (cards) => set({ playerCards: cards }, false, 'setPlayerCards'),
+  setDealerCards: (cards) => set({ dealerCards: cards }, false, 'setDealerCards'),
+  setHandBets: (bets) => set({ handBets: bets }, false, 'setHandBets'),
+  setTotalWagered: (amount) => set({ totalWagered: amount }, false, 'setTotalWagered'),
+  setCurrentFocus: (focus) => set({ currentFocus: focus }, false, 'setCurrentFocus'),
+  setCurrentBet: (bet) => set({ currentBet: bet }, false, 'setCurrentBet'),
+  setCurrentBalance: (balance) => set({ currentBalance: balance }, false, 'setCurrentBalance'),
+  setGameState: (state) => set({ gameState: state }, false, 'setGameState'),
+  setPlayState: (state) => set({ playState: state }, false, 'setPlayState'),
+  setShowGameOver: (show) => set({ showGameOver: show }, false, 'setShowGameOver'),
+  setShowDebug: (show) => {
+    // Persist to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('blackjack-debug', String(show));
+    }
+    set({ showDebug: show }, false, 'setShowDebug');
+  },
 
   // Initialize deck
   initializeDeck: () => {
@@ -99,7 +110,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...newPlayerCards[focusIndex],
         { ...newCard, animation: CardAnimation.SlideDown },
       ];
-      set({ playerCards: newPlayerCards });
+      set({ playerCards: newPlayerCards }, false, 'addPlayerCard');
     }
   },
 
@@ -113,7 +124,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           ...dealerCards,
           { ...newCard, animation: CardAnimation.SlideUp, isFlipped },
         ],
-      });
+      }, false, 'addDealerCard');
     }
   },
 
@@ -124,7 +135,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newBalance = currentBalance - betDifference;
 
     if (newBet >= 0 && newBalance >= 0) {
-      set({ currentBet: newBet, currentBalance: newBalance });
+      set({ currentBet: newBet, currentBalance: newBalance }, false, 'updateCurrentBet');
     }
   },
 
@@ -134,7 +145,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       currentBet: currentBet - chipValue,
       currentBalance: currentBalance + chipValue,
-    });
+    }, false, 'handleChipClick');
   },
 
   // Restart game
@@ -153,16 +164,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState: GameState.Betting,
       playState: PlayState.None,
       showGameOver: false,
-    });
+    }, false, 'restartGame');
   },
 
   // Move focus to next hand
   moveFocus: () => {
     const { currentFocus } = get();
     if (currentFocus <= 0) {
-      set({ gameState: GameState.DealerPlay, currentFocus: -1 });
+      set({ gameState: GameState.DealerPlay, currentFocus: -1 }, false, 'moveFocus');
     } else {
-      set({ currentFocus: currentFocus - 1 });
+      set({ currentFocus: currentFocus - 1 }, false, 'moveFocus');
     }
   },
 
@@ -188,12 +199,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentBalance: currentBalance - splitBet,
       totalWagered: totalWagered + splitBet,
       gameState: GameState.Animation,
-    });
+    }, false, 'split:start');
 
     // Update bets
     const newBets = [...handBets];
     newBets.splice(currentFocus, 1, splitBet, splitBet);
-    set({ handBets: newBets });
+    set({ handBets: newBets }, false, 'split:updateBets');
 
     // Split cards
     let newCards = [...playerCards];
@@ -213,7 +224,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         [{ ...cardRight, animation: CardAnimation.SlideDownRight }],
       );
     }
-    set({ playerCards: newCards });
+    set({ playerCards: newCards }, false, 'split:animateCards');
 
     // Clear animations and deal new cards
     setTimeout(() => {
@@ -222,13 +233,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         playerCards: currentCards.map((cardGroup) =>
           cardGroup.map((card) => ({ ...card, animation: undefined })),
         ),
-      });
+      }, false, 'split:clearAnimations');
     }, 1000);
 
     setTimeout(() => get().addPlayerCard(currentFocus), 1500);
     setTimeout(() => get().addPlayerCard(currentFocus + 1), 2000);
-    set({ currentFocus: currentFocus + 1 });
-    setTimeout(() => set({ gameState: GameState.Play }), 2500);
+    set({ currentFocus: currentFocus + 1 }, false, 'split:updateFocus');
+    setTimeout(() => set({ gameState: GameState.Play }, false, 'split:complete'), 2500);
   },
 
   // Double down action
@@ -241,12 +252,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       currentBalance: currentBalance - additionalBet,
       totalWagered: totalWagered + additionalBet,
-    });
+    }, false, 'double:updateBalance');
 
     // Double the bet
     const newBets = [...handBets];
     newBets[currentFocus] = newBets[currentFocus] * 2;
-    set({ handBets: newBets });
+    set({ handBets: newBets }, false, 'double:updateBet');
 
     // Deal card
     const newCard = deck.dealCard();
@@ -264,9 +275,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           style: { transform: `rotate(90deg)`, left: `32%` },
         },
       ];
-      set({ playerCards: newCards });
+      set({ playerCards: newCards }, false, 'double:dealCard');
     }
 
     setTimeout(() => get().moveFocus(), 1000);
   },
-}));
+    }),
+    { name: 'Blackjack Game' }
+  )
+);
