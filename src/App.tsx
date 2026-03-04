@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import './styles/App.css';
+import './styles/index.css';
 import Game from './components/Game';
 
 function App() {
@@ -33,13 +33,15 @@ function App() {
   }, []);
 
   return (
-    <div id="main-container">
+    <div className="app-shell relative min-h-screen h-screen w-full overflow-hidden bg-neutral-900">
       <div
-        className="game-container"
+        className="table-shell absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-black/40 shadow-2xl bg-cover bg-center bg-no-repeat"
         style={{
           width: `${componentSize.width}px`,
           height: `${componentSize.height}px`,
           fontSize: `${fontSize}px`,
+          backgroundImage: "url('./assets/background/backdrop.svg')",
+          backgroundColor: '#085C3A',
         }}
       >
         <Game />

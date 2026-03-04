@@ -1,10 +1,66 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-casino-red: #c0392b;
+  --color-casino-red-light: #e74c3c;
+  --color-casino-red-dark: #922b21;
+
+  --font-family-sans: Mulish, sans-serif;
+
+  --shadow-casino-glow: 0 0 24px rgba(192, 57, 43, 0.25);
+  --shadow-casino-button: 0 4px 14px rgba(0, 0, 0, 0.3);
+  --shadow-casino-panel: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-family-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #060a07;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+  background: #0a0d0a;
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app-shell::before {
+  background: radial-gradient(circle at 50% 0%, rgba(8, 92, 58, 0.1), transparent 45%);
+}
+
+.app-shell::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  mix-blend-mode: soft-light;
+  opacity: 0.15;
+}
+
+.table-shell {
+  isolation: isolate;
+}
+
+.table-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.14) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2));
 }
 
 code {

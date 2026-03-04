@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
-import '../styles/Card.css';
 import blank from '../assets/cards/blank.svg';
 import back from '../assets/cards/back.svg';
 import { CardRank, CardSuit } from './enums';
@@ -104,14 +103,24 @@ const Card: React.FC<CardProps> = ({ rank, suit, style, isFlipped, animation }) 
   }, [animation, controls]);
 
   return (
-    <motion.div className="card-container" style={style} animate={controls}>
-      <div className={`card ${isFlipped ? 'flipped' : ''}`}>
+    <motion.div className="relative h-full w-[65%]" style={style} animate={controls}>
+      <div>
         <img
-          className="front"
+          className={`absolute h-full w-auto object-contain rounded-[4.5%] shadow-md transition-transform duration-[600ms] ${
+            isFlipped ? '[transform:rotateY(180deg)]' : '[transform:rotateY(0deg)]'
+          }`}
+          style={{ backfaceVisibility: 'hidden', transformStyle: 'preserve-3d' }}
           src={getImage()}
           alt={isFlipped ? 'Card Back' : `${rank} of ${suit}`}
         />
-        <img className="back" src={back} alt="Card Back" />
+        <img
+          className={`absolute h-full w-auto object-contain rounded-[4.5%] shadow-md transition-transform duration-[600ms] ${
+            isFlipped ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
+          }`}
+          style={{ backfaceVisibility: 'hidden', transformStyle: 'preserve-3d' }}
+          src={back}
+          alt="Card Back"
+        />
       </div>
     </motion.div>
   );

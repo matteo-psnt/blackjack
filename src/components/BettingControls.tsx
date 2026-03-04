@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import '../styles/BettingControls.css';
 import { GameState } from './enums';
 
 interface BettingControlsProps {
@@ -8,28 +7,9 @@ interface BettingControlsProps {
   gameState: GameState;
 }
 
-const ALLOWED_KEYS = new Set([
-  '0',
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  'Enter',
-  'Backspace',
-  'ArrowLeft',
-  'ArrowRight',
-  'ArrowUp',
-  'ArrowDown',
-  'Delete',
-  'Tab',
-]);
+const getDigitsOnly = (value: string) => value.replace(/\D/g, '');
 
-const getDigitsOnly = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
+const CHIP_PRESETS = [5, 10, 25, 100];
 
 const BettingControls: React.FC<BettingControlsProps> = ({
   currentBet,
@@ -47,78 +27,80 @@ const BettingControls: React.FC<BettingControlsProps> = ({
   }, [currentBet, isEditing]);
 
   const commitDraft = () => {
-    const parsedValue = draftValue === '' ? 0 : parseInt(draftValue, 10);
-    setBetAmount(Number.isNaN(parsedValue) ? 0 : parsedValue);
+    const parsed = draftValue === '' ? 0 : parseInt(draftValue, 10);
+    setBetAmount(Number.isNaN(parsed) ? 0 : parsed);
   };
 
   const handleFocus = () => {
-    if (!isBetting) {
-      return;
-    }
-
     setIsEditing(true);
     setDraftValue(String(currentBet));
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      return;
-    }
+  const handleBlur = () => {
+    commitDraft();
+    setIsEditing(false);
+  };
 
-    if (!ALLOWED_KEYS.has(event.key)) {
-      event.preventDefault();
-      return;
-    }
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDraftValue(getDigitsOnly(event.target.value));
+  };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      event.preventDefault();
       event.currentTarget.blur();
       return;
     }
 
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
-
-      const nextBet = event.key === 'ArrowUp' ? currentBet + 1 : Math.max(currentBet - 1, 0);
-
-      setDraftValue(String(nextBet));
-      setBetAmount(nextBet);
-    }
-  };
-
-  const handleBlur = () => {
-    if (isBetting) {
-      commitDraft();
-    }
-
-    setIsEditing(false);
-  };
-
-  const handleInput = (event: React.FormEvent<HTMLDivElement>) => {
-    const currentText = event.currentTarget.textContent ?? event.currentTarget.innerText;
-    const digitsOnly = getDigitsOnly(currentText);
-
-    setIsEditing(true);
-    setDraftValue(digitsOnly);
-
-    if (currentText !== digitsOnly) {
-      event.currentTarget.textContent = digitsOnly;
-      window.getSelection()?.collapse(event.currentTarget, event.currentTarget.childNodes.length);
+      const next = event.key === 'ArrowUp' ? currentBet + 1 : Math.max(currentBet - 1, 0);
+      setDraftValue(String(next));
+      setBetAmount(next);
     }
   };
 
   return (
-    <div
-      className="current-bet"
-      contentEditable={isBetting}
-      suppressContentEditableWarning
-      tabIndex={0}
-      onFocus={handleFocus}
-      onKeyDown={handleKeyDown}
-      onBlur={handleBlur}
-      onInput={handleInput}
-    >
-      {isEditing ? draftValue : `${currentBet}$`}
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-[0.1em]">
+        <span className="text-white/40 text-[0.32em] font-bold tracking-[0.2em] uppercase">
+          Bet
+        </span>
+        <input
+          type="text"
+          inputMode="numeric"
+          readOnly={!isBetting}
+          value={isEditing ? draftValue : `$${currentBet}`}
+          className={`px-2 py-1 rounded text-white font-bold text-[0.8em] outline-none transition-colors w-[5.5em] bg-transparent ${
+            isBetting
+              ? 'cursor-text border border-white/25 focus:border-white/50 focus:bg-black/30'
+              : 'border border-transparent pointer-events-none'
+          }`}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
+
+      {isBetting && (
+        <div className="flex gap-1.5">
+          {CHIP_PRESETS.map((chipValue) => (
+            <button
+              key={chipValue}
+              className="px-2 py-1 border border-white/20 rounded text-white/60 text-[0.36em] font-bold hover:border-white/45 hover:text-white/90 hover:bg-white/[0.05] transition-all"
+              onClick={() => setBetAmount(currentBet + chipValue)}
+            >
+              +{chipValue}
+            </button>
+          ))}
+          <button
+            className="px-2 py-1 border border-white/15 rounded text-white/35 text-[0.36em] font-bold hover:border-white/30 hover:text-white/55 transition-all"
+            onClick={() => setBetAmount(0)}
+          >
+            Clear
+          </button>
+        </div>
+      )}
     </div>
   );
 };
