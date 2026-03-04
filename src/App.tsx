@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Game from './components/Game';
+import TitleScreen from './components/TitleScreen';
 
 const FINAL_FELT_TEXTURE_STYLE: React.CSSProperties = {
   opacity: 0.65,
@@ -19,6 +20,7 @@ function App() {
   const aspectRatio = 1300 / 720;
   const [componentSize, setComponentSize] = useState({ width: 0, height: 0 });
   const [fontSize, setFontSize] = useState(0);
+  const [screen, setScreen] = useState<'title' | 'game'>('title');
 
   const updateSize = () => {
     const windowHeight = window.innerHeight;
@@ -58,7 +60,7 @@ function App() {
       >
         <div className="table-texture-layer" style={FINAL_FELT_TEXTURE_STYLE} />
         <div className="table-content-layer">
-          <Game />
+          {screen === 'title' ? <TitleScreen onStart={() => setScreen('game')} /> : <Game />}
         </div>
       </div>
     </div>
