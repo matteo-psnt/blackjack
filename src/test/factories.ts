@@ -8,22 +8,21 @@ type GameControlsProps = ComponentProps<typeof GameControls>;
 type InsurancePromptProps = ComponentProps<typeof InsurancePrompt>;
 type GameControlsTestProps = Omit<
   GameControlsProps,
-  'hit' | 'stand' | 'split' | 'double' | 'setGameState'
+  'deal' | 'double' | 'hit' | 'split' | 'stand'
 > & {
-  hit: Mock;
-  stand: Mock;
-  split: Mock;
+  deal: Mock;
   double: Mock;
-  setGameState: Mock;
+  hit: Mock;
+  split: Mock;
+  stand: Mock;
 };
-type InsurancePromptTestProps = Omit<InsurancePromptProps, 'setGameState' | 'setCurrentBalance'> & {
-  setGameState: Mock;
-  setCurrentBalance: Mock;
+type InsurancePromptTestProps = Omit<
+  InsurancePromptProps,
+  'onBuyInsurance' | 'onDeclineInsurance'
+> & {
+  onBuyInsurance: Mock;
+  onDeclineInsurance: Mock;
 };
-
-export function resolveStateSetterValue<T>(update: T | ((value: T) => T), currentValue: T): T {
-  return typeof update === 'function' ? (update as (value: T) => T)(currentValue) : update;
-}
 
 export function createGameControlsProps(
   overrides: Partial<GameControlsTestProps> = {},
@@ -33,10 +32,12 @@ export function createGameControlsProps(
     stand: vi.fn(),
     split: vi.fn(),
     double: vi.fn(),
-    setGameState: vi.fn(),
+    deal: vi.fn(),
     gameState: GameState.Betting,
-    currentBet: 10,
     playState: PlayState.None,
+    canDeal: true,
+    canDouble: true,
+    canSplit: true,
     ...overrides,
   };
 }
@@ -46,11 +47,10 @@ export function createInsurancePromptProps(
 ): InsurancePromptTestProps {
   return {
     gameState: GameState.Insurance,
-    setGameState: vi.fn(),
-    setCurrentBalance: vi.fn(),
-    currentBalance: 100,
-    betAmount: 20,
-    dealerHas21: false,
+    onBuyInsurance: vi.fn(),
+    onDeclineInsurance: vi.fn(),
+    insuranceCost: 10,
+    canAffordInsurance: true,
     ...overrides,
   };
 }

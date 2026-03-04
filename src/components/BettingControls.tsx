@@ -8,85 +8,102 @@ interface BettingControlsProps {
   gameState: GameState;
 }
 
+const ALLOWED_KEYS = new Set([
+  '0',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  'Enter',
+  'Backspace',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Delete',
+  'Tab',
+]);
+
+const getDigitsOnly = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
+
 const BettingControls: React.FC<BettingControlsProps> = ({
   currentBet,
   setBetAmount,
   gameState,
 }) => {
-  const [displayValue, setDisplayValue] = useState(`${currentBet}$`);
+  const [draftValue, setDraftValue] = useState(String(currentBet));
   const [isEditing, setIsEditing] = useState(false);
-  const [isBetting, setIsBetting] = useState(true);
+  const isBetting = gameState === GameState.Betting;
 
   useEffect(() => {
     if (!isEditing) {
-      setDisplayValue(`${currentBet}$`);
+      setDraftValue(String(currentBet));
     }
   }, [currentBet, isEditing]);
 
-  useEffect(() => {
-    if (gameState === GameState.Betting) {
-      setIsBetting(true);
-    } else if (gameState === GameState.Dealing) {
-      setIsBetting(false);
+  const commitDraft = () => {
+    const parsedValue = draftValue === '' ? 0 : parseInt(draftValue, 10);
+    setBetAmount(Number.isNaN(parsedValue) ? 0 : parsedValue);
+  };
+
+  const handleFocus = () => {
+    if (!isBetting) {
+      return;
     }
-  }, [gameState]);
+
+    setIsEditing(true);
+    setDraftValue(String(currentBet));
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (
-      ![
-        '0',
-        '1',
-        '2',
-        '3',
-        '4',
-        '5',
-        '6',
-        '7',
-        '8',
-        '9',
-        'Enter',
-        'Backspace',
-        'ArrowLeft',
-        'ArrowRight',
-        'ArrowUp',
-        'ArrowDown',
-        'Delete',
-      ].includes(event.key)
-    ) {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return;
+    }
+
+    if (!ALLOWED_KEYS.has(event.key)) {
       event.preventDefault();
-    } else if (event.key === 'Enter') {
+      return;
+    }
+
+    if (event.key === 'Enter') {
       event.preventDefault();
       event.currentTarget.blur();
-    } else if (event.key === 'ArrowUp') {
+      return;
+    }
+
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
-      setDisplayValue(`${currentBet + 1}$`);
-      setBetAmount(currentBet + 1);
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setDisplayValue(`${currentBet - 1}$`);
-      setBetAmount(currentBet - 1);
+
+      const nextBet = event.key === 'ArrowUp' ? currentBet + 1 : Math.max(currentBet - 1, 0);
+
+      setDraftValue(String(nextBet));
+      setBetAmount(nextBet);
     }
   };
-  const handleBlur = (event: React.FocusEvent<HTMLDivElement>) => {
-    setIsEditing(false);
-    const betText = event.currentTarget.innerText.replace(/\D/g, '');
-    const newBet = parseInt(betText, 10);
 
-    if (!isNaN(newBet)) {
-      setBetAmount(newBet);
+  const handleBlur = () => {
+    if (isBetting) {
+      commitDraft();
     }
-    event.currentTarget.innerText = `${currentBet}$`;
+
+    setIsEditing(false);
   };
 
   const handleInput = (event: React.FormEvent<HTMLDivElement>) => {
-    setIsEditing(true);
-    const editedText = event.currentTarget.innerText.replace(/\D/g, '');
-    const inputBet = parseInt(editedText, 10);
+    const currentText = event.currentTarget.textContent ?? event.currentTarget.innerText;
+    const digitsOnly = getDigitsOnly(currentText);
 
-    if (!isNaN(inputBet) && inputBet > 0) {
-      setBetAmount(inputBet);
-    } else {
-      setBetAmount(0);
+    setIsEditing(true);
+    setDraftValue(digitsOnly);
+
+    if (currentText !== digitsOnly) {
+      event.currentTarget.textContent = digitsOnly;
+      window.getSelection()?.collapse(event.currentTarget, event.currentTarget.childNodes.length);
     }
   };
 
@@ -94,12 +111,14 @@ const BettingControls: React.FC<BettingControlsProps> = ({
     <div
       className="current-bet"
       contentEditable={isBetting}
+      suppressContentEditableWarning
       tabIndex={0}
+      onFocus={handleFocus}
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
       onInput={handleInput}
     >
-      {displayValue}
+      {isEditing ? draftValue : `${currentBet}$`}
     </div>
   );
 };

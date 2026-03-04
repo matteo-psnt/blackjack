@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import '../styles/Card.css';
 import blank from '../assets/cards/blank.svg';
@@ -37,21 +37,21 @@ const cardVariants = {
   // Split animations - cards are already in new position, animate FROM old position
   // slideRight: for hands to the RIGHT of split, they move right to make room
   slideRight: {
-    initial: { x: '-72.5%' },  // Start from left (old position)
-    animate: { x: 0 },           // End at current position (moved right)
+    initial: { x: '-72.5%' }, // Start from left (old position)
+    animate: { x: 0 }, // End at current position (moved right)
     transition: { type: 'spring', stiffness: 120, damping: 25 },
   },
   // slideLeft: the LEFT split card, starts at center, ends at left
   slideLeft: {
-    initial: { x: '72.5%' },   // Start from right (where center was)
-    animate: { x: 0 },          // End at current position (left hand)
+    initial: { x: '72.5%' }, // Start from right (where center was)
+    animate: { x: 0 }, // End at current position (left hand)
     transition: { type: 'spring', stiffness: 120, damping: 25 },
   },
 
   // slideDownRight: the RIGHT split card, starts at center, ends at right-down
   slideDownRight: {
-    initial: { x: '-59.5%', y: '-18%' },  // Start from left-up (where center was)
-    animate: { x: 0, y: 0 },               // End at current position (right hand)
+    initial: { x: '-59.5%', y: '-18%' }, // Start from left-up (where center was)
+    animate: { x: 0, y: 0 }, // End at current position (right hand)
     transition: { type: 'spring', stiffness: 120, damping: 25 },
   },
 
@@ -104,11 +104,7 @@ const Card: React.FC<CardProps> = ({ rank, suit, style, isFlipped, animation }) 
   }, [animation, controls]);
 
   return (
-    <motion.div
-      className="card-container"
-      style={style}
-      animate={controls}
-    >
+    <motion.div className="card-container" style={style} animate={controls}>
       <div className={`card ${isFlipped ? 'flipped' : ''}`}>
         <img
           className="front"

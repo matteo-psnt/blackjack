@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { CardRank, CardSuit, GameState, PlayState, CardAnimation } from '../components/enums';
+import { CardAnimation, CardRank, CardSuit, GameState, PlayState } from '../components/enums';
 import Deck from '../components/Deck';
+
+const DEFAULT_BANKROLL = 1000;
+const DEFAULT_STAGED_BET = 100;
 
 export interface Card {
   rank: CardRank;
@@ -12,7 +15,6 @@ export interface Card {
 }
 
 interface GameStore {
-  // State
   deck: Deck;
   playerCards: Card[][];
   dealerCards: Card[];
@@ -21,12 +23,11 @@ interface GameStore {
   currentFocus: number;
   currentBet: number;
   currentBalance: number;
+  insuranceBet: number;
   gameState: GameState;
   playState: PlayState;
   showGameOver: boolean;
   showDebug: boolean;
-
-  // Actions
   setPlayerCards: (cards: Card[][]) => void;
   setDealerCards: (cards: Card[]) => void;
   setHandBets: (bets: number[]) => void;
@@ -34,253 +35,466 @@ interface GameStore {
   setCurrentFocus: (focus: number) => void;
   setCurrentBet: (bet: number) => void;
   setCurrentBalance: (balance: number) => void;
+  setInsuranceBet: (bet: number) => void;
   setGameState: (state: GameState) => void;
   setPlayState: (state: PlayState) => void;
   setShowGameOver: (show: boolean) => void;
   setShowDebug: (show: boolean) => void;
-
-  // Game actions
+  initializeDeck: () => void;
+  beginDeal: () => void;
   addPlayerCard: (focusIndex: number) => void;
   addDealerCard: (isFlipped: boolean) => void;
   updateCurrentBet: (newBet: number) => void;
   handleChipClick: (chipValue: number) => void;
   restartGame: () => void;
-  initializeDeck: () => void;
   split: () => void;
   double: () => void;
   hit: () => void;
   stand: () => void;
   moveFocus: () => void;
+  resolveInsuranceDecision: (buyInsurance: boolean) => void;
+  finalizeRound: () => void;
 }
+
+const roundToHalfDollar = (amount: number) => Math.round(amount * 2) / 2;
+
+const toWholeDollar = (amount: number) => {
+  if (!Number.isFinite(amount)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(amount));
+};
+
+const createShuffledDeck = () => {
+  const deck = new Deck();
+  deck.shuffle();
+  return deck;
+};
+
+const getStoredDebugPreference = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return localStorage.getItem('blackjack-debug') === 'true';
+};
+
+export const getHandValue = (
+  hand: Array<{ rank: CardRank; isFlipped?: boolean }>,
+  includeHiddenCards = false,
+) => {
+  let value = 0;
+  let aces = 0;
+
+  for (const card of hand) {
+    if (!card.isFlipped || includeHiddenCards) {
+      if (card.rank === CardRank.Ace) {
+        aces += 1;
+      }
+
+      value += Math.min(10, card.rank);
+    }
+  }
+
+  while (value <= 11 && aces > 0) {
+    value += 10;
+    aces -= 1;
+  }
+
+  return value;
+};
+
+export const getVisibleHandValue = (hand: Array<{ rank: CardRank; isFlipped?: boolean }>) =>
+  getHandValue(hand);
+
+export const getResolvedHandValue = (hand: Array<{ rank: CardRank; isFlipped?: boolean }>) =>
+  getHandValue(hand, true);
+
+export const getInsuranceCost = (betAmount: number) => Math.floor(Math.max(0, betAmount) / 2);
+
+const getNextStagedBet = (preferredBet: number, availableBalance: number) => {
+  const maxAffordableBet = Math.max(0, Math.floor(availableBalance));
+  return Math.min(toWholeDollar(preferredBet), maxAffordableBet);
+};
+
+const getInitialState = () => ({
+  deck: createShuffledDeck(),
+  playerCards: [] as Card[][],
+  dealerCards: [] as Card[],
+  handBets: [] as number[],
+  totalWagered: 0,
+  currentFocus: 0,
+  currentBet: DEFAULT_STAGED_BET,
+  currentBalance: DEFAULT_BANKROLL - DEFAULT_STAGED_BET,
+  insuranceBet: 0,
+  gameState: GameState.Betting,
+  playState: PlayState.None,
+  showGameOver: false,
+  showDebug: getStoredDebugPreference(),
+});
 
 export const useGameStore = create<GameStore>()(
   devtools(
     (set, get) => ({
-      // Initial state
-      deck: new Deck(),
-      playerCards: [],
-      dealerCards: [],
-      handBets: [],
-      totalWagered: 0,
-      currentFocus: 0,
-      currentBet: 100,
-      currentBalance: 900,
-      gameState: GameState.Betting,
-      playState: PlayState.None,
-      showGameOver: false,
-      showDebug: typeof window !== 'undefined'
-        ? localStorage.getItem('blackjack-debug') === 'true'
-        : false,
-
-  // Simple setters
-  setPlayerCards: (cards) => set({ playerCards: cards }, false, 'setPlayerCards'),
-  setDealerCards: (cards) => set({ dealerCards: cards }, false, 'setDealerCards'),
-  setHandBets: (bets) => set({ handBets: bets }, false, 'setHandBets'),
-  setTotalWagered: (amount) => set({ totalWagered: amount }, false, 'setTotalWagered'),
-  setCurrentFocus: (focus) => set({ currentFocus: focus }, false, 'setCurrentFocus'),
-  setCurrentBet: (bet) => set({ currentBet: bet }, false, 'setCurrentBet'),
-  setCurrentBalance: (balance) => set({ currentBalance: balance }, false, 'setCurrentBalance'),
-  setGameState: (state) => set({ gameState: state }, false, 'setGameState'),
-  setPlayState: (state) => set({ playState: state }, false, 'setPlayState'),
-  setShowGameOver: (show) => set({ showGameOver: show }, false, 'setShowGameOver'),
-  setShowDebug: (show) => {
-    // Persist to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('blackjack-debug', String(show));
-    }
-    set({ showDebug: show }, false, 'setShowDebug');
-  },
-
-  // Initialize deck
-  initializeDeck: () => {
-    const { deck } = get();
-    deck.shuffle();
-  },
-
-  // Add card to player hand
-  addPlayerCard: (focusIndex) => {
-    const { deck, playerCards } = get();
-    const newCard = deck.dealCard();
-    if (newCard) {
-      const newPlayerCards = [...playerCards];
-      if (!newPlayerCards[focusIndex]) {
-        newPlayerCards[focusIndex] = [];
-      }
-      newPlayerCards[focusIndex] = [
-        ...newPlayerCards[focusIndex],
-        { ...newCard, animation: CardAnimation.SlideDown },
-      ];
-      set({ playerCards: newPlayerCards }, false, 'addPlayerCard');
-    }
-  },
-
-  // Add card to dealer hand
-  addDealerCard: (isFlipped) => {
-    const { deck, dealerCards } = get();
-    const newCard = deck.dealCard();
-    if (newCard) {
-      set({
-        dealerCards: [
-          ...dealerCards,
-          { ...newCard, animation: CardAnimation.SlideUp, isFlipped },
-        ],
-      }, false, 'addDealerCard');
-    }
-  },
-
-  // Update bet amount
-  updateCurrentBet: (newBet) => {
-    const { currentBet, currentBalance } = get();
-    const betDifference = newBet - currentBet;
-    const newBalance = currentBalance - betDifference;
-
-    if (newBet >= 0 && newBalance >= 0) {
-      set({ currentBet: newBet, currentBalance: newBalance }, false, 'updateCurrentBet');
-    }
-  },
-
-  // Handle chip click
-  handleChipClick: (chipValue) => {
-    const { currentBet, currentBalance } = get();
-    set({
-      currentBet: currentBet - chipValue,
-      currentBalance: currentBalance + chipValue,
-    }, false, 'handleChipClick');
-  },
-
-  // Restart game
-  restartGame: () => {
-    const { deck } = get();
-    deck.initializeDeck(6);
-    deck.shuffle();
-    set({
-      playerCards: [],
-      dealerCards: [],
-      handBets: [],
-      totalWagered: 0,
-      currentFocus: 0,
-      currentBet: 100,
-      currentBalance: 900,
-      gameState: GameState.Betting,
-      playState: PlayState.None,
-      showGameOver: false,
-    }, false, 'restartGame');
-  },
-
-  // Move focus to next hand
-  moveFocus: () => {
-    const { currentFocus } = get();
-    if (currentFocus <= 0) {
-      set({ gameState: GameState.DealerPlay, currentFocus: -1 }, false, 'moveFocus');
-    } else {
-      set({ currentFocus: currentFocus - 1 }, false, 'moveFocus');
-    }
-  },
-
-  // Hit action
-  hit: () => {
-    const { currentFocus, addPlayerCard } = get();
-    addPlayerCard(currentFocus);
-  },
-
-  // Stand action
-  stand: () => {
-    const { moveFocus } = get();
-    moveFocus();
-  },
-
-  // Split action
-  split: () => {
-    const { handBets, currentFocus, currentBalance, totalWagered, playerCards } = get();
-    const splitBet = handBets[currentFocus];
-
-    // Update balance and wagered amount
-    set({
-      currentBalance: currentBalance - splitBet,
-      totalWagered: totalWagered + splitBet,
-      gameState: GameState.Animation,
-    }, false, 'split:start');
-
-    // Update bets
-    const newBets = [...handBets];
-    newBets.splice(currentFocus, 1, splitBet, splitBet);
-    set({ handBets: newBets }, false, 'split:updateBets');
-
-    // Split cards
-    let newCards = [...playerCards];
-    if (newCards[currentFocus] && newCards[currentFocus].length === 2) {
-      newCards = newCards.map((cardGroup, index) => {
-        const animation =
-          index < currentFocus ? CardAnimation.SlideLeft : CardAnimation.SlideRight;
-        return cardGroup.map((card) => ({ ...card, animation }));
-      });
-
-      const [cardLeft, cardRight] = newCards[currentFocus];
-      newCards.splice(currentFocus, 1);
-      newCards.splice(
-        currentFocus,
-        0,
-        [{ ...cardLeft, animation: CardAnimation.SlideLeft }],
-        [{ ...cardRight, animation: CardAnimation.SlideDownRight }],
-      );
-    }
-    set({ playerCards: newCards }, false, 'split:animateCards');
-
-    // Clear animations and deal new cards
-    setTimeout(() => {
-      const currentCards = get().playerCards;
-      set({
-        playerCards: currentCards.map((cardGroup) =>
-          cardGroup.map((card) => ({ ...card, animation: undefined })),
+      ...getInitialState(),
+      setPlayerCards: (cards) => set({ playerCards: cards }, false, 'setPlayerCards'),
+      setDealerCards: (cards) => set({ dealerCards: cards }, false, 'setDealerCards'),
+      setHandBets: (bets) => set({ handBets: bets }, false, 'setHandBets'),
+      setTotalWagered: (amount) =>
+        set({ totalWagered: roundToHalfDollar(amount) }, false, 'setTotalWagered'),
+      setCurrentFocus: (focus) => set({ currentFocus: focus }, false, 'setCurrentFocus'),
+      setCurrentBet: (bet) => set({ currentBet: toWholeDollar(bet) }, false, 'setCurrentBet'),
+      setCurrentBalance: (balance) =>
+        set(
+          { currentBalance: Math.max(0, roundToHalfDollar(balance)) },
+          false,
+          'setCurrentBalance',
         ),
-      }, false, 'split:clearAnimations');
-    }, 1000);
+      setInsuranceBet: (bet) =>
+        set({ insuranceBet: Math.max(0, toWholeDollar(bet)) }, false, 'setInsuranceBet'),
+      setGameState: (state) => set({ gameState: state }, false, 'setGameState'),
+      setPlayState: (state) => set({ playState: state }, false, 'setPlayState'),
+      setShowGameOver: (show) => set({ showGameOver: show }, false, 'setShowGameOver'),
+      setShowDebug: (show) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('blackjack-debug', String(show));
+        }
 
-    setTimeout(() => get().addPlayerCard(currentFocus), 1500);
-    setTimeout(() => get().addPlayerCard(currentFocus + 1), 2000);
-    set({ currentFocus: currentFocus + 1 }, false, 'split:updateFocus');
-    setTimeout(() => set({ gameState: GameState.Play }, false, 'split:complete'), 2500);
-  },
+        set({ showDebug: show }, false, 'setShowDebug');
+      },
+      initializeDeck: () => set({ deck: createShuffledDeck() }, false, 'initializeDeck'),
+      beginDeal: () => {
+        const { currentBet } = get();
 
-  // Double down action
-  double: () => {
-    const { handBets, currentFocus, currentBalance, totalWagered, deck, playerCards } =
-      get();
-    const additionalBet = handBets[currentFocus];
+        if (currentBet <= 0) {
+          return;
+        }
 
-    // Update balance and wagered amount
-    set({
-      currentBalance: currentBalance - additionalBet,
-      totalWagered: totalWagered + additionalBet,
-    }, false, 'double:updateBalance');
+        set(
+          {
+            playerCards: [],
+            dealerCards: [],
+            handBets: [currentBet],
+            totalWagered: currentBet,
+            currentFocus: 0,
+            insuranceBet: 0,
+            playState: PlayState.None,
+            gameState: GameState.Dealing,
+            showGameOver: false,
+          },
+          false,
+          'beginDeal',
+        );
+      },
+      addPlayerCard: (focusIndex) => {
+        const { deck, playerCards } = get();
+        const newCard = deck.dealCard();
 
-    // Double the bet
-    const newBets = [...handBets];
-    newBets[currentFocus] = newBets[currentFocus] * 2;
-    set({ handBets: newBets }, false, 'double:updateBet');
+        if (!newCard) {
+          return;
+        }
 
-    // Deal card
-    const newCard = deck.dealCard();
-    if (newCard) {
-      const newCards = [...playerCards];
-      if (!newCards[currentFocus]) {
-        newCards[currentFocus] = [];
-      }
-      newCards[currentFocus] = [
-        ...newCards[currentFocus],
-        {
-          ...newCard,
-          animation: CardAnimation.DoubleDown,
-          isFlipped: true,
-          style: { transform: `rotate(90deg)`, left: `32%` },
-        },
-      ];
-      set({ playerCards: newCards }, false, 'double:dealCard');
-    }
+        const nextPlayerCards = [...playerCards];
 
-    setTimeout(() => get().moveFocus(), 1000);
-  },
+        if (!nextPlayerCards[focusIndex]) {
+          nextPlayerCards[focusIndex] = [];
+        }
+
+        nextPlayerCards[focusIndex] = [
+          ...nextPlayerCards[focusIndex],
+          { ...newCard, animation: CardAnimation.SlideDown },
+        ];
+
+        set({ playerCards: nextPlayerCards }, false, 'addPlayerCard');
+      },
+      addDealerCard: (isFlipped) => {
+        const { deck, dealerCards } = get();
+        const newCard = deck.dealCard();
+
+        if (!newCard) {
+          return;
+        }
+
+        set(
+          {
+            dealerCards: [
+              ...dealerCards,
+              { ...newCard, animation: CardAnimation.SlideUp, isFlipped },
+            ],
+          },
+          false,
+          'addDealerCard',
+        );
+      },
+      updateCurrentBet: (newBet) => {
+        const { currentBet, currentBalance } = get();
+        const maxAffordableBet = Math.max(0, Math.floor(currentBalance + currentBet));
+        const nextBet = Math.min(toWholeDollar(newBet), maxAffordableBet);
+
+        if (nextBet === currentBet) {
+          return;
+        }
+
+        const betDifference = nextBet - currentBet;
+        const nextBalance = roundToHalfDollar(currentBalance - betDifference);
+
+        set(
+          {
+            currentBet: nextBet,
+            currentBalance: Math.max(0, nextBalance),
+          },
+          false,
+          'updateCurrentBet',
+        );
+      },
+      handleChipClick: (chipValue) => {
+        const { currentBet, currentBalance } = get();
+
+        if (chipValue <= 0 || chipValue > currentBet) {
+          return;
+        }
+
+        set(
+          {
+            currentBet: currentBet - chipValue,
+            currentBalance: roundToHalfDollar(currentBalance + chipValue),
+          },
+          false,
+          'handleChipClick',
+        );
+      },
+      restartGame: () => set(getInitialState(), false, 'restartGame'),
+      split: () => {
+        const { currentBalance, currentFocus, gameState, handBets, playState, playerCards } = get();
+        const currentHand = playerCards[currentFocus];
+        const splitBet = handBets[currentFocus] ?? 0;
+        const canSplitHand =
+          playState === PlayState.CanSplit &&
+          gameState === GameState.Play &&
+          currentHand !== undefined &&
+          currentHand.length === 2 &&
+          currentHand[0].rank === currentHand[1].rank &&
+          playerCards.length < 4 &&
+          splitBet > 0 &&
+          currentBalance >= splitBet;
+
+        if (!canSplitHand) {
+          return;
+        }
+
+        const nextBets = [...handBets];
+        nextBets.splice(currentFocus, 1, splitBet, splitBet);
+
+        const animatedCards = playerCards.map((cardGroup, index) => {
+          const animation =
+            index < currentFocus ? CardAnimation.SlideLeft : CardAnimation.SlideRight;
+          return cardGroup.map((card) => ({ ...card, animation }));
+        });
+
+        const [cardLeft, cardRight] = animatedCards[currentFocus];
+        animatedCards.splice(
+          currentFocus,
+          1,
+          [{ ...cardLeft, animation: CardAnimation.SlideLeft }],
+          [{ ...cardRight, animation: CardAnimation.SlideDownRight }],
+        );
+
+        set(
+          {
+            currentBalance: roundToHalfDollar(currentBalance - splitBet),
+            handBets: nextBets,
+            totalWagered: roundToHalfDollar(get().totalWagered + splitBet),
+            playerCards: animatedCards,
+            currentFocus: currentFocus + 1,
+            gameState: GameState.Animation,
+          },
+          false,
+          'split:start',
+        );
+
+        setTimeout(() => {
+          const currentCards = get().playerCards;
+          set(
+            {
+              playerCards: currentCards.map((cardGroup) =>
+                cardGroup.map((card) => ({ ...card, animation: undefined })),
+              ),
+            },
+            false,
+            'split:clearAnimations',
+          );
+        }, 1000);
+
+        setTimeout(() => get().addPlayerCard(currentFocus), 1500);
+        setTimeout(() => get().addPlayerCard(currentFocus + 1), 2000);
+        setTimeout(() => set({ gameState: GameState.Play }, false, 'split:complete'), 2500);
+      },
+      double: () => {
+        const {
+          currentBalance,
+          currentFocus,
+          deck,
+          gameState,
+          handBets,
+          playState,
+          playerCards,
+          totalWagered,
+        } = get();
+        const currentHand = playerCards[currentFocus];
+        const additionalBet = handBets[currentFocus] ?? 0;
+        const canDoubleHand =
+          gameState === GameState.Play &&
+          (playState === PlayState.Normal || playState === PlayState.CanSplit) &&
+          currentHand !== undefined &&
+          currentHand.length === 2 &&
+          additionalBet > 0 &&
+          currentBalance >= additionalBet;
+
+        if (!canDoubleHand) {
+          return;
+        }
+
+        const nextBets = [...handBets];
+        nextBets[currentFocus] = nextBets[currentFocus] * 2;
+
+        set(
+          {
+            currentBalance: roundToHalfDollar(currentBalance - additionalBet),
+            handBets: nextBets,
+            totalWagered: roundToHalfDollar(totalWagered + additionalBet),
+          },
+          false,
+          'double:updateBalance',
+        );
+
+        const newCard = deck.dealCard();
+
+        if (newCard) {
+          const nextCards = [...playerCards];
+
+          if (!nextCards[currentFocus]) {
+            nextCards[currentFocus] = [];
+          }
+
+          nextCards[currentFocus] = [
+            ...nextCards[currentFocus],
+            {
+              ...newCard,
+              animation: CardAnimation.DoubleDown,
+              isFlipped: true,
+              style: { transform: 'rotate(90deg)', left: '32%' },
+            },
+          ];
+
+          set({ playerCards: nextCards }, false, 'double:dealCard');
+        }
+
+        setTimeout(() => get().moveFocus(), 1000);
+      },
+      hit: () => {
+        const { addPlayerCard, currentFocus } = get();
+        addPlayerCard(currentFocus);
+      },
+      stand: () => {
+        get().moveFocus();
+      },
+      moveFocus: () => {
+        const { currentFocus } = get();
+
+        if (currentFocus <= 0) {
+          set({ currentFocus: -1, gameState: GameState.DealerPlay }, false, 'moveFocus');
+          return;
+        }
+
+        set({ currentFocus: currentFocus - 1 }, false, 'moveFocus');
+      },
+      resolveInsuranceDecision: (buyInsurance) => {
+        const { currentBalance, currentBet, dealerCards } = get();
+        const insuranceCost = getInsuranceCost(currentBet);
+        const dealerHasBlackjack =
+          dealerCards.length === 2 && getResolvedHandValue(dealerCards) === 21;
+
+        if (buyInsurance) {
+          if (insuranceCost <= 0 || currentBalance < insuranceCost) {
+            return;
+          }
+
+          set(
+            {
+              currentBalance: roundToHalfDollar(currentBalance - insuranceCost),
+              insuranceBet: insuranceCost,
+              gameState: dealerHasBlackjack ? GameState.DealerPlay : GameState.Play,
+            },
+            false,
+            'insurance:buy',
+          );
+          return;
+        }
+
+        set(
+          {
+            insuranceBet: 0,
+            gameState: dealerHasBlackjack ? GameState.DealerPlay : GameState.Play,
+          },
+          false,
+          'insurance:decline',
+        );
+      },
+      finalizeRound: () => {
+        const { currentBalance, currentBet, dealerCards, handBets, insuranceBet, playerCards } =
+          get();
+        const dealerValue = getResolvedHandValue(dealerCards);
+
+        let mainPayout = 0;
+
+        playerCards.forEach((hand, index) => {
+          const handBet = handBets[index] ?? 0;
+          const playerValue = getResolvedHandValue(hand);
+          const isBlackjack = playerValue === 21 && hand.length === 2 && playerCards.length === 1;
+
+          if (playerValue > 21 || (dealerValue <= 21 && playerValue < dealerValue)) {
+            return;
+          }
+
+          if (playerValue === dealerValue) {
+            mainPayout += handBet;
+            return;
+          }
+
+          if (isBlackjack) {
+            mainPayout += handBet * 2.5;
+            return;
+          }
+
+          mainPayout += handBet * 2;
+        });
+
+        const insurancePayout =
+          insuranceBet > 0 && dealerCards.length === 2 && dealerValue === 21 ? insuranceBet * 3 : 0;
+        const availableBalance = roundToHalfDollar(currentBalance + mainPayout + insurancePayout);
+        const nextBet = getNextStagedBet(currentBet, availableBalance);
+        const nextBalance = roundToHalfDollar(availableBalance - nextBet);
+
+        set(
+          {
+            playerCards: [],
+            dealerCards: [],
+            handBets: [],
+            totalWagered: 0,
+            currentFocus: 0,
+            currentBet: nextBet,
+            currentBalance: nextBalance,
+            insuranceBet: 0,
+            gameState: GameState.Betting,
+            playState: PlayState.None,
+            showGameOver: nextBet === 0,
+          },
+          false,
+          'finalizeRound',
+        );
+      },
     }),
-    { name: 'Blackjack Game' }
-  )
+    { name: 'Blackjack Game' },
+  ),
 );

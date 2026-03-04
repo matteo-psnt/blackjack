@@ -16,12 +16,13 @@
   transition: background-color 0.3s;
 }
 
-.player-controls button:hover {
+.player-controls button:not(:disabled):hover {
   background-color: #555;
   color: white;
 }
 
 .player-controls button:disabled {
   background-color: #ccc;
+  color: #666;
   cursor: not-allowed;
 }
