@@ -24,14 +24,12 @@ const Game = () => {
     gameState,
     playState,
     showGameOver,
-    showDebug,
     deck,
     setPlayerCards,
     setDealerCards,
     setCurrentFocus,
     setGameState,
     setPlayState,
-    setShowDebug,
     addPlayerCard,
     addDealerCard,
     updateCurrentBet,
@@ -73,22 +71,7 @@ const Game = () => {
     initializeDeck();
   }, [initializeDeck]);
 
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') {
-      return;
-    }
-
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === 'D' && event.shiftKey) {
-        setShowDebug(!showDebug);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [setShowDebug, showDebug]);
-
-  useEffect(() => {
+useEffect(() => {
     if (gameState === GameState.Dealing) {
       if (deck.deck.length < 52) {
         initializeDeck();
@@ -259,39 +242,7 @@ const Game = () => {
   return (
     <div className="flex flex-col h-full w-full">
 
-      {showDebug && process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-2.5 right-2.5 bg-black/80 text-green-500 p-2.5 rounded font-mono text-xs z-[9999]">
-          <div>DEBUG MODE (Shift+D to toggle)</div>
-          <div>Focus: {currentFocus}</div>
-          <div>State: {GameState[gameState]}</div>
-          <div>Play: {PlayState[playState]}</div>
-          <div>Hands: {playerCards.length}</div>
-          <div>Bets: {JSON.stringify(handBets)}</div>
-          <div>Wagered: ${totalWagered}</div>
-          <div className="mt-2.5 flex gap-1.5 flex-wrap">
-            <button onClick={double} className="text-[10px] px-1.5 py-0.5">
-              Double
-            </button>
-            <button onClick={split} className="text-[10px] px-1.5 py-0.5">
-              Split
-            </button>
-            <button
-              onClick={() => setCurrentFocus(Math.max(0, currentFocus - 1))}
-              className="text-[10px] px-1.5 py-0.5"
-            >
-              ◀
-            </button>
-            <button
-              onClick={() => setCurrentFocus(Math.min(playerCards.length - 1, currentFocus + 1))}
-              className="text-[10px] px-1.5 py-0.5"
-            >
-              ▶
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Top bar */}
+{/* Top bar */}
       <div
         className="flex items-center justify-between px-[4%] border-b border-white/[0.08] bg-black/20"
         style={{ height: '11%' }}
