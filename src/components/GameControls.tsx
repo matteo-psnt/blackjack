@@ -10,6 +10,7 @@ interface GameControlsProps {
   gameState: GameState;
   playState: PlayState;
   canDeal: boolean;
+  showDouble: boolean;
   canDouble: boolean;
   canSplit: boolean;
 }
@@ -23,6 +24,7 @@ const GameControls: React.FC<GameControlsProps> = ({
   gameState,
   playState,
   canDeal,
+  showDouble,
   canDouble,
   canSplit,
 }) => {
@@ -55,13 +57,15 @@ const GameControls: React.FC<GameControlsProps> = ({
             <button onClick={stand} className={`${base} ${secondary}`}>
               Stand
             </button>
-            <button
-              onClick={double}
-              disabled={!canDouble}
-              className={`${base} ${canDouble ? secondary : disabled}`}
-            >
-              Double
-            </button>
+            {showDouble && (
+              <button
+                onClick={double}
+                disabled={!canDouble}
+                className={`${base} ${canDouble ? secondary : disabled}`}
+              >
+                Double
+              </button>
+            )}
           </>
         );
       } else if (playState === PlayState.CanSplit) {
@@ -70,23 +74,25 @@ const GameControls: React.FC<GameControlsProps> = ({
             <button
               onClick={split}
               disabled={!canSplit}
-              className={`${base} ${canSplit ? secondary : disabled}`}
+              className={`${base} ${canSplit ? primary : disabled}`}
             >
               Split
             </button>
-            <button onClick={hit} className={`${base} ${primary}`}>
+            <button onClick={hit} className={`${base} ${secondary}`}>
               Hit
             </button>
             <button onClick={stand} className={`${base} ${secondary}`}>
               Stand
             </button>
-            <button
-              onClick={double}
-              disabled={!canDouble}
-              className={`${base} ${canDouble ? secondary : disabled}`}
-            >
-              Double
-            </button>
+            {showDouble && (
+              <button
+                onClick={double}
+                disabled={!canDouble}
+                className={`${base} ${canDouble ? secondary : disabled}`}
+              >
+                Double
+              </button>
+            )}
           </>
         );
       } else if (playState === PlayState.Post || playState === PlayState.Split) {

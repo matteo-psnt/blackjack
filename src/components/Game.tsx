@@ -68,14 +68,14 @@ const Game = () => {
   const canDeal = currentBet > 0;
 
   const canAffordInsurance = insuranceCost > 0 && currentBalance >= insuranceCost;
-  const canDouble =
+  const showDouble =
     gameState === GameState.Play &&
     (playState === PlayState.Normal || playState === PlayState.CanSplit) &&
     currentHand !== undefined &&
     playerCards.length === 1 &&
     currentHand.length === 2 &&
-    currentHandBet > 0 &&
-    currentBalance >= currentHandBet;
+    currentHandBet > 0;
+  const canDouble = showDouble && currentBalance >= currentHandBet;
   const canSplit =
     gameState === GameState.Play &&
     playState === PlayState.CanSplit &&
@@ -480,6 +480,7 @@ const Game = () => {
           gameState={gameState}
           playState={playState}
           canDeal={canDeal}
+          showDouble={showDouble}
           canDouble={canDouble}
           canSplit={canSplit}
         />
