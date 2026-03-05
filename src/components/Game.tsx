@@ -5,6 +5,8 @@ import BettingControls from './BettingControls';
 import GameControls from './GameControls';
 import InsurancePrompt from './InsurancePrompt';
 import GameOver from './GameOver';
+import DebugPanel from './DebugPanel';
+import { useDebugStore } from '../store/debugStore';
 import { CardAnimation, CardRank, GameState, PlayState } from '../game/model';
 import {
   getInsuranceCost,
@@ -28,6 +30,19 @@ const getBustCollectionTarget = (cardIndex: number, handSize: number) => ({
   y: `${cardIndex * 18}%`,
   rotate: 0,
   delay: cardIndex * 0.05,
+});
+
+const introEase = [0.22, 1, 0.36, 1] as const;
+const introItem = (delay: number, y = 10) => ({
+  initial: { opacity: 0, y },
+  animate: { opacity: 1, y: 0 },
+  transition: { delay, duration: 0.34, ease: introEase },
+});
+
+const introScale = (delay: number) => ({
+  initial: { opacity: 0, scaleX: 0.96 },
+  animate: { opacity: 1, scaleX: 1 },
+  transition: { delay, duration: 0.38, ease: introEase },
 });
 
 const Game = () => {
@@ -61,6 +76,7 @@ const Game = () => {
     resolveInsuranceDecision,
     finalizeRound,
   } = useGameStore();
+  const { paused: debugPaused } = useDebugStore();
 
   const currentHand = playerCards[currentFocus];
   const currentHandBet = handBets[currentFocus] ?? 0;
@@ -110,6 +126,7 @@ const Game = () => {
   }, [initializeDeck]);
 
   useEffect(() => {
+    if (debugPaused) return;
     if (gameState === GameState.Dealing) {
       if (deck.deck.length < 52) {
         initializeDeck();
@@ -144,9 +161,10 @@ const Game = () => {
       snapBaselineToPredeal();
       finalizeRound();
     }
-  }, [gameState, snapBaselineToPredeal]);
+  }, [gameState, snapBaselineToPredeal, debugPaused]);
 
   useEffect(() => {
+    if (debugPaused) return;
     if (gameState !== GameState.DealerDeal) {
       return;
     }
@@ -161,9 +179,10 @@ const Game = () => {
     setTimeout(() => {
       setGameState(GameState.Results);
     }, 1000);
-  }, [addDealerCard, dealerCards, gameState, setGameState]);
+  }, [addDealerCard, dealerCards, debugPaused, gameState, setGameState]);
 
   useEffect(() => {
+    if (debugPaused) return;
     if (gameState !== GameState.Play) {
       return;
     }
@@ -217,7 +236,15 @@ const Game = () => {
     }
 
     setPlayState(PlayState.Normal);
-  }, [currentHand, gameState, moveFocus, playerCards.length, setGameState, setPlayState]);
+  }, [
+    currentHand,
+    debugPaused,
+    gameState,
+    moveFocus,
+    playerCards.length,
+    setGameState,
+    setPlayState,
+  ]);
 
   // Regular function declaration (hoisted) so the linter can never create a
   // temporal-dead-zone error by reordering it above its const dependencies.
@@ -411,7 +438,7 @@ const Game = () => {
             Balance
           </span>
           <span
-            className={`text-[0.9em] font-bold leading-none transition-colors duration-300 ${
+            className={`text-[0.88em] font-bold leading-none transition-colors duration-300 ${
               balanceTrend === 'up'
                 ? 'text-emerald-400'
                 : balanceTrend === 'down'
@@ -423,9 +450,12 @@ const Game = () => {
             {formatDisplayAmount(displayedBalance)}
           </span>
         </div>
-        <span className="text-white/20 text-[0.36em] tracking-[0.3em] uppercase font-bold">
+        <motion.span
+          className="text-white/20 text-[0.36em] tracking-[0.3em] uppercase font-bold"
+          {...introItem(0.1, -8)}
+        >
           Blackjack
-        </span>
+        </motion.span>
       </div>
 
       {/* Play area */}
@@ -439,7 +469,10 @@ const Game = () => {
         {renderDealerCards()}
 
         {/* Center divider */}
-        <div className="absolute left-[6%] right-[6%] top-1/2 border-t border-white/[0.07]" />
+        <motion.div
+          className="absolute left-[6%] right-[6%] top-1/2 border-t border-white/[0.07] origin-center"
+          {...introScale(0.14)}
+        />
 
         {/* Round result badge — shows net profit + gross return for clarity */}
         {renderRoundResult()}
@@ -466,27 +499,32 @@ const Game = () => {
         className="flex items-center justify-between gap-4 px-[5%] border-t border-white/[0.08] bg-black/35"
         style={{ height: '22%' }}
       >
-        <BettingControls
-          currentBet={gameState === GameState.Betting ? currentBet : totalWagered}
-          setBetAmount={updateCurrentBet}
-          gameState={gameState}
-        />
-        <GameControls
-          hit={hit}
-          stand={stand}
-          split={split}
-          double={double}
-          deal={handleDeal}
-          gameState={gameState}
-          playState={playState}
-          canDeal={canDeal}
-          showDouble={showDouble}
-          canDouble={canDouble}
-          canSplit={canSplit}
-        />
+        <motion.div className="flex min-w-0 flex-1" {...introItem(0.2, 12)}>
+          <BettingControls
+            currentBet={gameState === GameState.Betting ? currentBet : totalWagered}
+            setBetAmount={updateCurrentBet}
+            gameState={gameState}
+          />
+        </motion.div>
+        <motion.div className="flex shrink-0" {...introItem(0.28, 12)}>
+          <GameControls
+            hit={hit}
+            stand={stand}
+            split={split}
+            double={double}
+            deal={handleDeal}
+            gameState={gameState}
+            playState={playState}
+            canDeal={canDeal}
+            showDouble={showDouble}
+            canDouble={canDouble}
+            canSplit={canSplit}
+          />
+        </motion.div>
       </div>
 
       {showGameOver && <GameOver onRestart={restartGame} />}
+      {import.meta.env.VITE_DEBUG_PANEL === 'true' && <DebugPanel />}
     </div>
   );
 };

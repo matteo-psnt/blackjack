@@ -13,11 +13,11 @@ describe('App', () => {
     expect(screen.queryByText('Blackjack table')).not.toBeInTheDocument();
   });
 
-  it('enters the table after pressing start', () => {
+  it('enters the table after pressing start', async () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Start Game' }));
 
-    expect(screen.getByText('Blackjack table')).toBeInTheDocument();
+    expect(await screen.findByText('Blackjack table')).toBeInTheDocument();
   });
 });

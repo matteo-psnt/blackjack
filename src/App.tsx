@@ -47,6 +47,8 @@ function App() {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+  const handleStart = () => setScreen('game');
+
   return (
     <div className="app-shell relative min-h-screen h-screen w-full overflow-hidden bg-neutral-900">
       <div
@@ -60,7 +62,7 @@ function App() {
       >
         <div className="table-texture-layer" style={FINAL_FELT_TEXTURE_STYLE} />
         <div className="table-content-layer">
-          {screen === 'title' ? <TitleScreen onStart={() => setScreen('game')} /> : <Game />}
+          {screen === 'title' ? <TitleScreen onStart={handleStart} /> : <Game />}
         </div>
       </div>
     </div>
