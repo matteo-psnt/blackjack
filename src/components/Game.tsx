@@ -45,6 +45,9 @@ const introScale = (delay: number) => ({
   transition: { delay, duration: 0.38, ease: introEase },
 });
 
+const DEALER_STACK_START_LEFT = 5.5;
+const DEALER_CARD_SPACING = 24;
+
 const Game = () => {
   const {
     playerCards,
@@ -102,6 +105,7 @@ const Game = () => {
   const showResults = gameState === GameState.Results || gameState === GameState.WrapUp;
 
   const [collectedBustHands, setCollectedBustHands] = useState<Set<number>>(new Set());
+  const prevPlayerCountRef = React.useRef(playerCards.length);
 
   const { displayedBalance, balanceTrend, handleDeal, snapBaselineToPredeal } = useBalanceCounter(
     currentBalance,
@@ -117,9 +121,28 @@ const Game = () => {
     }
   }, [gameState, playState, currentFocus]);
 
+  // Keep collectedBustHands in sync when split() shifts hand indices.
+  // A split at index N inserts one hand, so any tracked index > N must increment by 1.
   useEffect(() => {
-    if (playerCards.length === 0) setCollectedBustHands(new Set());
-  }, [playerCards.length]);
+    const prevCount = prevPlayerCountRef.current;
+    prevPlayerCountRef.current = playerCards.length;
+
+    if (playerCards.length === 0) {
+      setCollectedBustHands(new Set());
+      return;
+    }
+
+    if (playerCards.length > prevCount && gameState === GameState.Animation) {
+      // currentFocus is the new right hand (= splitIdx + 1), so splitIdx = currentFocus - 1
+      const splitIdx = currentFocus - 1;
+      setCollectedBustHands((prev) => {
+        if (prev.size === 0) return prev;
+        const next = new Set<number>();
+        prev.forEach((idx) => next.add(idx > splitIdx ? idx + 1 : idx));
+        return next;
+      });
+    }
+  }, [playerCards.length, gameState, currentFocus]);
 
   useEffect(() => {
     initializeDeck();
@@ -328,7 +351,10 @@ const Game = () => {
         const outcome = showResults ? getHandOutcome(row, dealerCards, playerCards.length) : null;
         const isBustHand = collectedBustHands.has(rowIndex);
         const isCollectingBustHand =
-          isBustHand && gameState === GameState.Play && playState === PlayState.Bust;
+          isBustHand &&
+          rowIndex === currentFocus &&
+          gameState === GameState.Play &&
+          playState === PlayState.Bust;
 
         return (
           <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
@@ -415,7 +441,7 @@ const Game = () => {
             animation={card.animation}
             style={{
               top: `${cardIndex * -100}%`,
-              left: `${cardIndex * 30}%`,
+              left: `${DEALER_STACK_START_LEFT + cardIndex * DEALER_CARD_SPACING}%`,
             }}
           />
         ))}
