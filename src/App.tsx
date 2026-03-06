@@ -17,7 +17,7 @@ const FINAL_FELT_TEXTURE_STYLE: React.CSSProperties = {
 };
 
 function App() {
-  const aspectRatio = 1300 / 720;
+  const aspectRatio = 16 / 9;
   const [componentSize, setComponentSize] = useState({ width: 0, height: 0 });
   const [fontSize, setFontSize] = useState(0);
   const [screen, setScreen] = useState<'title' | 'game'>('title');
