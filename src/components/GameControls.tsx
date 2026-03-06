@@ -26,7 +26,7 @@ const GameControls: React.FC<GameControlsProps> = ({
   canDouble,
   canSplit,
 }) => {
-  const base = 'px-5 py-2 text-sm font-bold uppercase rounded border transition-all duration-150';
+  const base = 'px-[0.85em] py-[0.35em] text-[0.58em] font-bold uppercase rounded border transition-colors duration-150';
   const primary = 'border-red-700 bg-red-700 text-white hover:bg-red-600 active:bg-red-800';
   const secondary =
     'border-white/40 bg-transparent text-white hover:border-white/65 hover:bg-white/[0.05]';

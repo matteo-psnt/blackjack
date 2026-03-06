@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Card from './Card';
 import { CardRank, GameState, PlayState } from './enums';
 import BettingControls from './BettingControls';
@@ -6,18 +7,20 @@ import GameControls from './GameControls';
 import InsurancePrompt from './InsurancePrompt';
 import GameOver from './GameOver';
 import {
+  Card as CardData,
   getInsuranceCost,
   getResolvedHandValue,
   getVisibleHandValue,
   useGameStore,
 } from '../store/gameStore';
 
+type HandOutcome = 'bust' | 'lose' | 'push' | 'win' | 'blackjack';
+
 const Game = () => {
   const {
     playerCards,
     dealerCards,
     handBets,
-    totalWagered,
     currentFocus,
     currentBet,
     currentBalance,
@@ -27,7 +30,6 @@ const Game = () => {
     deck,
     setPlayerCards,
     setDealerCards,
-    setCurrentFocus,
     setGameState,
     setPlayState,
     addPlayerCard,
@@ -66,6 +68,53 @@ const Game = () => {
     currentBalance >= currentHandBet;
   const formatDisplayAmount = (amount: number) =>
     Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
+  const showResults = gameState === GameState.Results || gameState === GameState.WrapUp;
+
+  const getHandOutcome = (playerHand: CardData[]): HandOutcome => {
+    const playerValue = getResolvedHandValue(playerHand);
+    const dealerValue = getResolvedHandValue(dealerCards);
+    const isNaturalBlackjack =
+      playerValue === 21 && playerHand.length === 2 && playerCards.length === 1;
+
+    if (playerValue > 21) return 'bust';
+    if (isNaturalBlackjack && dealerValue !== 21) return 'blackjack';
+    if (dealerValue > 21 || playerValue > dealerValue) return 'win';
+    if (playerValue === dealerValue) return 'push';
+    return 'lose';
+  };
+
+  const getNetAmount = (outcome: HandOutcome, bet: number): number => {
+    switch (outcome) {
+      case 'blackjack': return bet * 1.5;
+      case 'win': return bet;
+      case 'push': return 0;
+      default: return -bet;
+    }
+  };
+
+  const formatNet = (outcome: HandOutcome, amount: number): string => {
+    if (outcome === 'push') return 'Push';
+    const abs = formatDisplayAmount(Math.abs(amount));
+    return amount > 0 ? `+$${abs}` : `-$${abs}`;
+  };
+
+  const getOutcomeBadgeClasses = (outcome: HandOutcome): string => {
+    switch (outcome) {
+      case 'win': return 'border-2 border-emerald-500 bg-emerald-600 text-white';
+      case 'blackjack': return 'border-2 border-yellow-400 bg-yellow-500 text-black';
+      case 'push': return 'border border-white/30 bg-black/60 text-white/60';
+      default: return 'border-2 border-red-600 bg-red-700 text-white';
+    }
+  };
+
+  const getNetColor = (outcome: HandOutcome): string => {
+    switch (outcome) {
+      case 'win':
+      case 'blackjack': return 'text-emerald-400';
+      case 'push': return 'text-white/50';
+      default: return 'text-red-400';
+    }
+  };
 
   useEffect(() => {
     initializeDeck();
@@ -176,36 +225,56 @@ useEffect(() => {
   const renderPlayerCards = () => (
     <div
       className="absolute left-1/2 flex justify-center items-center gap-[4.5%] w-[103%] h-[22%] -translate-x-1/2 -translate-y-1/2"
-      style={{ top: '72%' }}
+      style={{ top: '74%' }}
     >
-      {playerCards.map((row, rowIndex) => (
-        <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
-          <div
-            className={`flex justify-center items-center absolute top-[123%] left-[35%] w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
-              currentFocus === rowIndex
-                ? 'border-2 border-red-500 bg-red-600 text-white'
-                : 'border border-white/30 bg-black/60 text-white/80'
-            }`}
-          >
-            {getVisibleHandValue(row)}
-          </div>
+      {playerCards.map((row, rowIndex) => {
+        const outcome = showResults ? getHandOutcome(row) : null;
+        const bet = handBets[rowIndex] ?? 0;
+        const net = outcome !== null ? getNetAmount(outcome, bet) : 0;
 
-          {row.map((card, cardIndex) => (
-            <Card
-              key={`${rowIndex}-${cardIndex}`}
-              rank={card.rank}
-              suit={card.suit}
-              style={{
-                top: `${cardIndex * -118}%`,
-                left: `${cardIndex * 13}%`,
-                ...card.style,
-              }}
-              isFlipped={card.isFlipped}
-              animation={card.animation}
-            />
-          ))}
-        </div>
-      ))}
+        return (
+          <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
+            <div
+              className={`flex justify-center items-center absolute top-[123%] left-[35%] w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
+                outcome !== null
+                  ? getOutcomeBadgeClasses(outcome)
+                  : currentFocus === rowIndex
+                  ? 'border-2 border-white/60 bg-black/60 text-white'
+                  : 'border border-white/30 bg-black/60 text-white/80'
+              }`}
+            >
+              {getVisibleHandValue(row)}
+            </div>
+
+            {outcome !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
+                className={`absolute font-bold text-[60%] tracking-tight whitespace-nowrap ${getNetColor(outcome)}`}
+                style={{ top: '158%', left: '35%', transform: 'translateX(-50%) translateY(-50%)' }}
+              >
+                {formatNet(outcome, net)}
+              </motion.div>
+            )}
+
+            {row.map((card, cardIndex) => (
+              <Card
+                key={`${rowIndex}-${cardIndex}`}
+                rank={card.rank}
+                suit={card.suit}
+                style={{
+                  top: `${cardIndex * -118}%`,
+                  left: `${cardIndex * 13}%`,
+                  ...card.style,
+                }}
+                isFlipped={card.isFlipped}
+                animation={card.animation}
+              />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -217,7 +286,7 @@ useEffect(() => {
     return (
       <div
         className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-[10%] h-[22%]"
-        style={{ top: '30%' }}
+        style={{ top: '25%' }}
       >
         {dealerCards.map((card, cardIndex) => (
           <Card
@@ -277,7 +346,7 @@ useEffect(() => {
         {renderPlayerCards()}
 
         {playerCards.length > 0 && playerCards[0].length > 0 && (
-          <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 text-white/20 text-[0.28em] font-bold tracking-[0.2em] uppercase">
+          <div className="absolute bottom-[2%] left-1/2 -translate-x-1/2 text-white/20 text-[0.28em] font-bold tracking-[0.2em] uppercase">
             You
           </div>
         )}
