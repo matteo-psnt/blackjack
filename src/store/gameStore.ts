@@ -14,6 +14,8 @@ export interface Card {
   style?: React.CSSProperties;
 }
 
+const getRankGameValue = (rank: CardRank) => Math.min(10, rank);
+
 interface GameStore {
   deck: Deck;
   playerCards: Card[][];
@@ -111,7 +113,8 @@ export const getVisibleHandValue = (hand: Array<{ rank: CardRank; isFlipped?: bo
 export const getResolvedHandValue = (hand: Array<{ rank: CardRank; isFlipped?: boolean }>) =>
   getHandValue(hand, true);
 
-export const getInsuranceCost = (betAmount: number) => Math.floor(Math.max(0, betAmount) / 2);
+export const getInsuranceCost = (betAmount: number) =>
+  roundToHalfDollar(Math.max(0, betAmount) / 2);
 
 const getNextStagedBet = (preferredBet: number, availableBalance: number) => {
   const maxAffordableBet = Math.max(0, Math.floor(availableBalance));
@@ -152,7 +155,7 @@ export const useGameStore = create<GameStore>()(
           'setCurrentBalance',
         ),
       setInsuranceBet: (bet) =>
-        set({ insuranceBet: Math.max(0, toWholeDollar(bet)) }, false, 'setInsuranceBet'),
+        set({ insuranceBet: Math.max(0, roundToHalfDollar(bet)) }, false, 'setInsuranceBet'),
       setGameState: (state) => set({ gameState: state }, false, 'setGameState'),
       setPlayState: (state) => set({ playState: state }, false, 'setPlayState'),
       setShowGameOver: (show) => set({ showGameOver: show }, false, 'setShowGameOver'),
@@ -274,7 +277,7 @@ export const useGameStore = create<GameStore>()(
           gameState === GameState.Play &&
           currentHand !== undefined &&
           currentHand.length === 2 &&
-          currentHand[0].rank === currentHand[1].rank &&
+          getRankGameValue(currentHand[0].rank) === getRankGameValue(currentHand[1].rank) &&
           playerCards.length < 4 &&
           splitBet > 0 &&
           currentBalance >= splitBet;
@@ -347,6 +350,7 @@ export const useGameStore = create<GameStore>()(
           gameState === GameState.Play &&
           (playState === PlayState.Normal || playState === PlayState.CanSplit) &&
           currentHand !== undefined &&
+          playerCards.length === 1 &&
           currentHand.length === 2 &&
           additionalBet > 0 &&
           currentBalance >= additionalBet;
@@ -445,33 +449,40 @@ export const useGameStore = create<GameStore>()(
         const { currentBalance, currentBet, dealerCards, handBets, insuranceBet, playerCards } =
           get();
         const dealerValue = getResolvedHandValue(dealerCards);
+        const dealerHasBlackjack = dealerCards.length === 2 && dealerValue === 21;
 
         let mainPayout = 0;
 
         playerCards.forEach((hand, index) => {
           const handBet = handBets[index] ?? 0;
           const playerValue = getResolvedHandValue(hand);
-          const isBlackjack = playerValue === 21 && hand.length === 2 && playerCards.length === 1;
+          const playerHasBlackjack =
+            playerValue === 21 && hand.length === 2 && playerCards.length === 1;
 
-          if (playerValue > 21 || (dealerValue <= 21 && playerValue < dealerValue)) {
+          if (playerValue > 21) {
+            return;
+          }
+
+          if (playerHasBlackjack) {
+            mainPayout += dealerHasBlackjack ? handBet : handBet * 2.5;
+            return;
+          }
+
+          if (dealerHasBlackjack) {
+            return;
+          }
+
+          if (dealerValue > 21 || playerValue > dealerValue) {
+            mainPayout += handBet * 2;
             return;
           }
 
           if (playerValue === dealerValue) {
             mainPayout += handBet;
-            return;
           }
-
-          if (isBlackjack) {
-            mainPayout += handBet * 2.5;
-            return;
-          }
-
-          mainPayout += handBet * 2;
         });
 
-        const insurancePayout =
-          insuranceBet > 0 && dealerCards.length === 2 && dealerValue === 21 ? insuranceBet * 3 : 0;
+        const insurancePayout = insuranceBet > 0 && dealerHasBlackjack ? insuranceBet * 3 : 0;
         const availableBalance = roundToHalfDollar(currentBalance + mainPayout + insurancePayout);
         const nextBet = getNextStagedBet(currentBet, availableBalance);
         const nextBalance = roundToHalfDollar(availableBalance - nextBet);

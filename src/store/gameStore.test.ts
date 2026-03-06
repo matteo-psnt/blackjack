@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Deck from '../components/Deck';
 import { CardRank, CardSuit, GameState, PlayState } from '../components/enums';
-import { useGameStore } from './gameStore';
+import { getInsuranceCost, useGameStore } from './gameStore';
 
 const resetStore = () => {
   localStorage.removeItem('blackjack-debug');
@@ -70,9 +70,14 @@ describe('gameStore bankroll logic', () => {
     useGameStore.getState().resolveInsuranceDecision(true);
 
     const state = useGameStore.getState();
-    expect(state.insuranceBet).toBe(7);
-    expect(state.currentBalance).toBe(93);
+    expect(state.insuranceBet).toBe(7.5);
+    expect(state.currentBalance).toBe(92.5);
     expect(state.gameState).toBe(GameState.DealerPlay);
+  });
+
+  it('calculates insurance as an exact half-bet, including half dollars', () => {
+    expect(getInsuranceCost(15)).toBe(7.5);
+    expect(getInsuranceCost(20)).toBe(10);
   });
 
   it('refuses insurance purchases the bankroll cannot cover', () => {
@@ -195,6 +200,55 @@ describe('gameStore bankroll logic', () => {
     expect(state.currentBalance).toBe(102.5);
   });
 
+  it('pays player blackjack when dealer reaches 21 without a natural blackjack', () => {
+    useGameStore.setState({
+      currentBet: 10,
+      currentBalance: 90,
+      handBets: [10],
+      playerCards: [
+        [
+          { rank: CardRank.Ace, suit: CardSuit.Clubs },
+          { rank: CardRank.King, suit: CardSuit.Hearts },
+        ],
+      ],
+      dealerCards: [
+        { rank: CardRank.Seven, suit: CardSuit.Spades },
+        { rank: CardRank.Five, suit: CardSuit.Diamonds },
+        { rank: CardRank.Nine, suit: CardSuit.Clubs },
+      ],
+    });
+
+    useGameStore.getState().finalizeRound();
+
+    const state = useGameStore.getState();
+    expect(state.currentBet).toBe(10);
+    expect(state.currentBalance).toBe(105);
+  });
+
+  it('pushes when both player and dealer have natural blackjack', () => {
+    useGameStore.setState({
+      currentBet: 10,
+      currentBalance: 90,
+      handBets: [10],
+      playerCards: [
+        [
+          { rank: CardRank.Ace, suit: CardSuit.Clubs },
+          { rank: CardRank.King, suit: CardSuit.Hearts },
+        ],
+      ],
+      dealerCards: [
+        { rank: CardRank.Ace, suit: CardSuit.Spades },
+        { rank: CardRank.Queen, suit: CardSuit.Diamonds },
+      ],
+    });
+
+    useGameStore.getState().finalizeRound();
+
+    const state = useGameStore.getState();
+    expect(state.currentBet).toBe(10);
+    expect(state.currentBalance).toBe(90);
+  });
+
   it('includes the hidden double-down card when settling the round', () => {
     useGameStore.setState({
       currentBet: 10,
@@ -223,8 +277,8 @@ describe('gameStore bankroll logic', () => {
   it('pays insurance only on a natural dealer blackjack and then re-stages the next bet', () => {
     useGameStore.setState({
       currentBet: 15,
-      currentBalance: 93,
-      insuranceBet: 7,
+      currentBalance: 92.5,
+      insuranceBet: 7.5,
       handBets: [15],
       playerCards: [
         [
@@ -242,8 +296,33 @@ describe('gameStore bankroll logic', () => {
 
     const state = useGameStore.getState();
     expect(state.currentBet).toBe(15);
-    expect(state.currentBalance).toBe(99);
+    expect(state.currentBalance).toBe(100);
     expect(state.insuranceBet).toBe(0);
+  });
+
+  it('allows splitting equal-value ten cards', () => {
+    useGameStore.setState({
+      currentBalance: 90,
+      currentFocus: 0,
+      handBets: [10],
+      gameState: GameState.Play,
+      playState: PlayState.CanSplit,
+      playerCards: [
+        [
+          { rank: CardRank.Ten, suit: CardSuit.Clubs },
+          { rank: CardRank.Queen, suit: CardSuit.Hearts },
+        ],
+      ],
+      totalWagered: 10,
+    });
+
+    useGameStore.getState().split();
+
+    const state = useGameStore.getState();
+    expect(state.handBets).toEqual([10, 10]);
+    expect(state.currentBalance).toBe(80);
+    expect(state.totalWagered).toBe(20);
+    expect(state.gameState).toBe(GameState.Animation);
   });
 
   it('stages no bet and shows game over when less than one dollar remains', () => {
@@ -306,5 +385,34 @@ describe('gameStore bankroll logic', () => {
       suit: CardSuit.Spades,
       isFlipped: true,
     });
+  });
+
+  it('blocks double after a split hand even if it is still a pair', () => {
+    useGameStore.setState({
+      currentBalance: 40,
+      currentFocus: 1,
+      handBets: [10, 10],
+      gameState: GameState.Play,
+      playState: PlayState.CanSplit,
+      playerCards: [
+        [
+          { rank: CardRank.Five, suit: CardSuit.Clubs },
+          { rank: CardRank.Seven, suit: CardSuit.Diamonds },
+        ],
+        [
+          { rank: CardRank.Eight, suit: CardSuit.Hearts },
+          { rank: CardRank.Eight, suit: CardSuit.Spades },
+        ],
+      ],
+      totalWagered: 20,
+    });
+
+    useGameStore.getState().double();
+
+    const state = useGameStore.getState();
+    expect(state.handBets).toEqual([10, 10]);
+    expect(state.currentBalance).toBe(40);
+    expect(state.totalWagered).toBe(20);
+    expect(state.playerCards[1]).toHaveLength(2);
   });
 });
