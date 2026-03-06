@@ -2,6 +2,20 @@ import React, { useEffect, useState } from 'react';
 import './styles/index.css';
 import Game from './components/Game';
 
+const FINAL_FELT_TEXTURE_STYLE: React.CSSProperties = {
+  opacity: 0.65,
+  filter: 'contrast(100%) brightness(80%) saturate(120%)',
+  mixBlendMode: 'multiply',
+  backgroundImage: [
+    'url("https://www.transparenttextures.com/patterns/felt.png")',
+    'repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 1px, rgba(0, 0, 0, 0) 1px 7px)',
+    'repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.018) 0 1px, rgba(0, 0, 0, 0) 1px 7px)',
+  ].join(', '),
+  backgroundSize: '164px 164px, 14px 14px, 14px 14px',
+  backgroundPosition: 'center, center, center',
+  backgroundRepeat: 'repeat, repeat, repeat',
+};
+
 function App() {
   const aspectRatio = 1300 / 720;
   const [componentSize, setComponentSize] = useState({ width: 0, height: 0 });
@@ -40,11 +54,13 @@ function App() {
           width: `${componentSize.width}px`,
           height: `${componentSize.height}px`,
           fontSize: `${fontSize}px`,
-          backgroundImage: "url('./assets/background/backdrop.svg')",
-          backgroundColor: '#085C3A',
+          backgroundColor: '#0a764b',
         }}
       >
-        <Game />
+        <div className="table-texture-layer" style={FINAL_FELT_TEXTURE_STYLE} />
+        <div className="table-content-layer">
+          <Game />
+        </div>
       </div>
     </div>
   );
