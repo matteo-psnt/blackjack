@@ -358,15 +358,17 @@ const Game = () => {
           gameState === GameState.Play &&
           playState === PlayState.Bust;
 
+        const isActiveHand = rowIndex === currentFocus && !isBustHand && outcome === null;
+
         return (
           <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
             <div
-              className={`flex justify-center items-center absolute top-[123%] left-1/2 w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
+              className={`flex justify-center items-center absolute top-[123%] left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
                 outcome !== null
-                  ? getOutcomeBadgeClasses(outcome)
-                  : currentFocus === rowIndex
-                    ? 'border-2 border-white/60 bg-black/60 text-white'
-                    : 'border border-white/30 bg-black/60 text-white/80'
+                  ? `w-[28%] h-[28%] ${getOutcomeBadgeClasses(outcome)}`
+                  : isActiveHand
+                    ? 'w-[28%] h-[28%] border-2 border-white/65 bg-black/60 text-white'
+                    : 'w-[28%] h-[28%] border border-white/30 bg-black/60 text-white/80'
               }`}
             >
               {getVisibleHandValue(row)}
