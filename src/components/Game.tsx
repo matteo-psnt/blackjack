@@ -315,7 +315,9 @@ const Game = () => {
       ? null
       : totalNet > 0
         ? `+$${formatDisplayAmount(totalNet)}`
-        : `-$${formatDisplayAmount(Math.abs(totalNet))}`;
+        : totalNet < 0
+          ? `-$${formatDisplayAmount(Math.abs(totalNet))}`
+          : null;
 
     return (
       <motion.div
