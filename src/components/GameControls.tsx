@@ -99,6 +99,16 @@ const GameControls: React.FC<GameControlsProps> = ({
             </button>
           </>
         );
+      } else if (playState === PlayState.Bust) {
+        return (
+          <div
+            role="status"
+            aria-live="polite"
+            className="px-[0.85em] py-[0.35em] text-[0.58em] font-bold uppercase rounded border border-red-500/40 bg-red-950/60 text-red-200 tracking-[0.14em]"
+          >
+            Busted
+          </div>
+        );
       }
     }
   }

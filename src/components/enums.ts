@@ -60,4 +60,5 @@ export enum CardAnimation {
   SlideLeft = 'slideLeft',
   SlideDownRight = 'slideDownRight',
   DoubleDown = 'doubleDown',
+  Collect = 'collect',
 }

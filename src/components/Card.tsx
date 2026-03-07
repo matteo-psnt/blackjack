@@ -16,6 +16,14 @@ interface CardProps {
   style?: React.CSSProperties;
   isFlipped?: boolean;
   animation?: CardAnimation;
+  animationTarget?: {
+    x?: number | string;
+    y?: number | string;
+    rotate?: number;
+    scale?: number;
+    opacity?: number;
+    delay?: number;
+  };
 }
 
 // Animation variants for different card animations
@@ -60,9 +68,31 @@ const cardVariants = {
     animate: { x: 0, y: 0, rotate: 90, opacity: 1 },
     transition: { type: 'spring', stiffness: 200, damping: 20 },
   },
+
+  collect: (target?: CardProps['animationTarget']) => ({
+    animate: {
+      x: target?.x ?? 0,
+      y: target?.y ?? 0,
+      rotate: target?.rotate ?? 0,
+      scale: target?.scale ?? 0.98,
+      opacity: target?.opacity ?? 1,
+    },
+    transition: {
+      duration: 0.34,
+      ease: [0.22, 1, 0.36, 1],
+      delay: target?.delay ?? 0,
+    },
+  }),
 };
 
-const Card: React.FC<CardProps> = ({ rank, suit, style, isFlipped, animation }) => {
+const Card: React.FC<CardProps> = ({
+  rank,
+  suit,
+  style,
+  isFlipped,
+  animation,
+  animationTarget,
+}) => {
   const controls = useAnimation();
 
   const getImage = () => {
@@ -85,6 +115,8 @@ const Card: React.FC<CardProps> = ({ rank, suit, style, isFlipped, animation }) 
         return cardVariants.slideDownRight;
       case CardAnimation.DoubleDown:
         return cardVariants.doubleDown;
+      case CardAnimation.Collect:
+        return cardVariants.collect(animationTarget);
       default:
         return null;
     }
@@ -100,7 +132,16 @@ const Card: React.FC<CardProps> = ({ rank, suit, style, isFlipped, animation }) 
       }
       controls.start(animConfig.animate, animConfig.transition);
     }
-  }, [animation, controls]);
+  }, [
+    animation,
+    animationTarget?.delay,
+    animationTarget?.opacity,
+    animationTarget?.rotate,
+    animationTarget?.scale,
+    animationTarget?.x,
+    animationTarget?.y,
+    controls,
+  ]);
 
   return (
     <motion.div className="relative h-full w-[65%]" style={style} animate={controls}>

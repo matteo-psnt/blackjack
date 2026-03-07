@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Card from './Card';
-import { CardRank, GameState, PlayState } from './enums';
+import { CardAnimation, CardRank, GameState, PlayState } from './enums';
 import BettingControls from './BettingControls';
 import GameControls from './GameControls';
 import InsurancePrompt from './InsurancePrompt';
@@ -16,6 +16,16 @@ import {
 
 type HandOutcome = 'bust' | 'lose' | 'push' | 'win' | 'blackjack';
 const getRankGameValue = (rank: CardRank) => Math.min(10, rank);
+const getBustCollectionTarget = (cardIndex: number, handSize: number) => {
+  const centerIndex = (handSize - 1) / 2;
+
+  return {
+    x: `${(centerIndex - cardIndex) * 13}%`,
+    y: `${(cardIndex - centerIndex) * 118}%`,
+    rotate: (cardIndex - centerIndex) * 2.5,
+    delay: cardIndex * 0.06,
+  };
+};
 
 const Game = () => {
   const {
@@ -24,6 +34,7 @@ const Game = () => {
     handBets,
     currentFocus,
     currentBet,
+    totalWagered,
     currentBalance,
     gameState,
     playState,
@@ -52,6 +63,7 @@ const Game = () => {
   const currentHandBet = handBets[currentFocus] ?? 0;
   const insuranceCost = getInsuranceCost(currentBet);
   const canDeal = currentBet > 0;
+
   const canAffordInsurance = insuranceCost > 0 && currentBalance >= insuranceCost;
   const canDouble =
     gameState === GameState.Play &&
@@ -72,12 +84,31 @@ const Game = () => {
     Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
   const showResults = gameState === GameState.Results || gameState === GameState.WrapUp;
 
-  // Animated balance counter
+  // Animated balance counter — fires on every balance change (deal, double, split, round resolution)
   const [displayedBalance, setDisplayedBalance] = useState(currentBalance);
   const [balanceTrend, setBalanceTrend] = useState<'up' | 'down' | null>(null);
+  const [collectedBustHands, setCollectedBustHands] = useState<Set<number>>(new Set());
   const balanceFromRef = useRef(currentBalance);
   const balanceRafRef = useRef<number>(0);
   const balanceTrendTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Captures balance right before deal so that the resolution animation shows net
+  // profit/loss from the player's pre-deal baseline (not the doubled return).
+  const preDealBalanceRef = useRef(currentBalance);
+
+  const handleDeal = useCallback(() => {
+    preDealBalanceRef.current = currentBalance;
+    beginDeal();
+  }, [currentBalance, beginDeal]);
+
+  useEffect(() => {
+    if (gameState === GameState.Play && playState === PlayState.Bust) {
+      setCollectedBustHands(prev => new Set(prev).add(currentFocus));
+    }
+  }, [gameState, playState, currentFocus]);
+
+  useEffect(() => {
+    if (playerCards.length === 0) setCollectedBustHands(new Set());
+  }, [playerCards.length]);
 
   useEffect(() => {
     const from = balanceFromRef.current;
@@ -134,10 +165,14 @@ const Game = () => {
     }
   };
 
-  const formatNet = (outcome: HandOutcome, amount: number): string => {
-    if (outcome === 'push') return 'Push';
-    const abs = formatDisplayAmount(Math.abs(amount));
-    return amount > 0 ? `+$${abs}` : `-$${abs}`;
+  const getOutcomeLabel = (outcome: HandOutcome): string => {
+    switch (outcome) {
+      case 'win': return 'Win';
+      case 'blackjack': return 'Blackjack';
+      case 'push': return 'Push';
+      case 'bust': return 'Bust';
+      default: return 'Lose';
+    }
   };
 
   const getOutcomeBadgeClasses = (outcome: HandOutcome): string => {
@@ -194,6 +229,9 @@ useEffect(() => {
       );
       setTimeout(() => setGameState(GameState.WrapUp), 3000);
     } else if (gameState === GameState.WrapUp) {
+      // Snap the animation baseline to pre-deal so the counter shows net
+      // profit/loss rather than the full stake-return + profit combined.
+      balanceFromRef.current = preDealBalanceRef.current;
       finalizeRound();
     }
   }, [gameState]);
@@ -267,6 +305,80 @@ useEffect(() => {
     setPlayState(PlayState.Normal);
   }, [currentHand, gameState, moveFocus, playerCards.length, setGameState, setPlayState]);
 
+  // Regular function declaration (hoisted) so the linter can never create a
+  // temporal-dead-zone error by reordering it above its const dependencies.
+  // By the time JSX calls this, every const in the component has been evaluated.
+  function renderRoundResult() {
+    if (!showResults || playerCards.length === 0) return null;
+
+    let totalNet = 0;
+    let totalGross = 0;
+    let allBlackjack = true;
+    let allPush = true;
+
+    for (let i = 0; i < playerCards.length; i++) {
+      const outcome = getHandOutcome(playerCards[i]);
+      const bet = handBets[i] ?? 0;
+      const net = getNetAmount(outcome, bet);
+      totalNet += net;
+      totalGross += Math.max(0, bet + net);
+      if (outcome !== 'blackjack') allBlackjack = false;
+      if (outcome !== 'push') allPush = false;
+    }
+
+    const label = allBlackjack
+      ? 'Blackjack'
+      : allPush
+        ? 'Push'
+        : totalNet > 0
+          ? 'Win'
+          : totalNet < 0
+            ? 'Lose'
+            : 'Push';
+
+    const labelColor = allBlackjack
+      ? 'text-yellow-400'
+      : totalNet > 0
+        ? 'text-emerald-400'
+        : totalNet < 0
+          ? 'text-red-400'
+          : 'text-white/50';
+
+    const netColor = totalNet > 0 ? 'text-emerald-300' : totalNet < 0 ? 'text-red-300' : 'text-white/40';
+
+    const netStr = allPush
+      ? null
+      : totalNet > 0
+        ? `+$${formatDisplayAmount(totalNet)}`
+        : `-$${formatDisplayAmount(Math.abs(totalNet))}`;
+
+    return (
+      <motion.div
+        key={`result-${gameState}`}
+        initial={{ opacity: 0, y: 8, scale: 0.92 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ delay: 0.25, duration: 0.3, ease: 'easeOut' }}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center pointer-events-none"
+      >
+        <p className={`text-[0.38em] font-bold tracking-[0.25em] uppercase ${labelColor}`}>
+          {label}
+        </p>
+
+        {netStr && (
+          <p className={`text-[0.95em] font-bold leading-none mt-[0.08em] ${netColor}`}>
+            {netStr}
+          </p>
+        )}
+
+        {totalGross > 0 && (
+          <p className="text-white/25 text-[0.28em] tracking-widest mt-[0.5em] uppercase">
+            ${formatDisplayAmount(totalGross)} returned
+          </p>
+        )}
+      </motion.div>
+    );
+  }
+
   const renderPlayerCards = () => (
     <div
       className="absolute left-1/2 flex justify-center items-center gap-[4.5%] w-[103%] h-[22%] -translate-x-1/2 -translate-y-1/2"
@@ -274,8 +386,11 @@ useEffect(() => {
     >
       {playerCards.map((row, rowIndex) => {
         const outcome = showResults ? getHandOutcome(row) : null;
-        const bet = handBets[rowIndex] ?? 0;
-        const net = outcome !== null ? getNetAmount(outcome, bet) : 0;
+        const isCollectingBustHand =
+          gameState === GameState.Play &&
+          playState === PlayState.Bust &&
+          currentFocus === rowIndex;
+        const isCollectedBustHand = collectedBustHands.has(rowIndex);
 
         return (
           <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
@@ -299,7 +414,7 @@ useEffect(() => {
                   transition={{ delay: 0.25, duration: 0.2 }}
                   className={`font-bold text-[60%] whitespace-nowrap ${getNetColor(outcome)}`}
                 >
-                  {formatNet(outcome, net)}
+                  {getOutcomeLabel(outcome)}
                 </motion.div>
               </div>
             )}
@@ -319,7 +434,10 @@ useEffect(() => {
                     ...card.style,
                   }}
                   isFlipped={card.isFlipped}
-                  animation={card.animation}
+                  animation={isCollectingBustHand ? CardAnimation.Collect : isCollectedBustHand ? undefined : card.animation}
+                  animationTarget={
+                    isCollectingBustHand ? getBustCollectionTarget(cardIndex, row.length) : undefined
+                  }
                 />
               );
             })}
@@ -397,6 +515,9 @@ useEffect(() => {
         {/* Center divider */}
         <div className="absolute left-[6%] right-[6%] top-1/2 border-t border-white/[0.07]" />
 
+        {/* Round result badge — shows net profit + gross return for clarity */}
+        {renderRoundResult()}
+
         {renderPlayerCards()}
 
         {playerCards.length > 0 && playerCards[0].length > 0 && (
@@ -420,7 +541,7 @@ useEffect(() => {
         style={{ height: '22%' }}
       >
         <BettingControls
-          currentBet={currentBet}
+          currentBet={gameState === GameState.Betting ? currentBet : totalWagered}
           setBetAmount={updateCurrentBet}
           gameState={gameState}
         />
@@ -429,7 +550,7 @@ useEffect(() => {
           stand={stand}
           split={split}
           double={double}
-          deal={beginDeal}
+          deal={handleDeal}
           gameState={gameState}
           playState={playState}
           canDeal={canDeal}

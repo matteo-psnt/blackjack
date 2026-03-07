@@ -121,6 +121,10 @@ const getNextStagedBet = (preferredBet: number, availableBalance: number) => {
   return Math.min(toWholeDollar(preferredBet), maxAffordableBet);
 };
 
+const isBustedHand = (hand: Card[] = []) => getResolvedHandValue(hand) > 21;
+
+const areAllHandsBusted = (hands: Card[][]) => hands.length > 0 && hands.every(isBustedHand);
+
 const getInitialState = () => ({
   deck: createShuffledDeck(),
   playerCards: [] as Card[][],
@@ -129,7 +133,7 @@ const getInitialState = () => ({
   totalWagered: 0,
   currentFocus: 0,
   currentBet: DEFAULT_STAGED_BET,
-  currentBalance: DEFAULT_BANKROLL - DEFAULT_STAGED_BET,
+  currentBalance: DEFAULT_BANKROLL,
   insuranceBet: 0,
   gameState: GameState.Betting,
   playState: PlayState.None,
@@ -168,7 +172,7 @@ export const useGameStore = create<GameStore>()(
       },
       initializeDeck: () => set({ deck: createShuffledDeck() }, false, 'initializeDeck'),
       beginDeal: () => {
-        const { currentBet } = get();
+        const { currentBet, currentBalance } = get();
 
         if (currentBet <= 0) {
           return;
@@ -185,6 +189,7 @@ export const useGameStore = create<GameStore>()(
             playState: PlayState.None,
             gameState: GameState.Dealing,
             showGameOver: false,
+            currentBalance: roundToHalfDollar(currentBalance - currentBet),
           },
           false,
           'beginDeal',
@@ -232,40 +237,23 @@ export const useGameStore = create<GameStore>()(
       },
       updateCurrentBet: (newBet) => {
         const { currentBet, currentBalance } = get();
-        const maxAffordableBet = Math.max(0, Math.floor(currentBalance + currentBet));
+        const maxAffordableBet = Math.max(0, Math.floor(currentBalance));
         const nextBet = Math.min(toWholeDollar(newBet), maxAffordableBet);
 
         if (nextBet === currentBet) {
           return;
         }
 
-        const betDifference = nextBet - currentBet;
-        const nextBalance = roundToHalfDollar(currentBalance - betDifference);
-
-        set(
-          {
-            currentBet: nextBet,
-            currentBalance: Math.max(0, nextBalance),
-          },
-          false,
-          'updateCurrentBet',
-        );
+        set({ currentBet: nextBet }, false, 'updateCurrentBet');
       },
       handleChipClick: (chipValue) => {
-        const { currentBet, currentBalance } = get();
+        const { currentBet } = get();
 
         if (chipValue <= 0 || chipValue > currentBet) {
           return;
         }
 
-        set(
-          {
-            currentBet: currentBet - chipValue,
-            currentBalance: roundToHalfDollar(currentBalance + chipValue),
-          },
-          false,
-          'handleChipClick',
-        );
+        set({ currentBet: currentBet - chipValue }, false, 'handleChipClick');
       },
       restartGame: () => set(getInitialState(), false, 'restartGame'),
       split: () => {
@@ -404,10 +392,13 @@ export const useGameStore = create<GameStore>()(
         get().moveFocus();
       },
       moveFocus: () => {
-        const { currentFocus } = get();
+        const { currentFocus, playerCards } = get();
 
         if (currentFocus <= 0) {
-          set({ currentFocus: -1, gameState: GameState.DealerPlay }, false, 'moveFocus');
+          const nextGameState = areAllHandsBusted(playerCards)
+            ? GameState.Results
+            : GameState.DealerPlay;
+          set({ currentFocus: -1, gameState: nextGameState }, false, 'moveFocus');
           return;
         }
 
@@ -485,7 +476,7 @@ export const useGameStore = create<GameStore>()(
         const insurancePayout = insuranceBet > 0 && dealerHasBlackjack ? insuranceBet * 3 : 0;
         const availableBalance = roundToHalfDollar(currentBalance + mainPayout + insurancePayout);
         const nextBet = getNextStagedBet(currentBet, availableBalance);
-        const nextBalance = roundToHalfDollar(availableBalance - nextBet);
+        const nextBalance = availableBalance;
 
         set(
           {
