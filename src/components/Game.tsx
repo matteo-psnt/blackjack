@@ -16,16 +16,12 @@ import {
 
 type HandOutcome = 'bust' | 'lose' | 'push' | 'win' | 'blackjack';
 const getRankGameValue = (rank: CardRank) => Math.min(10, rank);
-const getBustCollectionTarget = (cardIndex: number, handSize: number) => {
-  const centerIndex = (handSize - 1) / 2;
-
-  return {
-    x: `${(centerIndex - cardIndex) * 13}%`,
-    y: `${(cardIndex - centerIndex) * 118}%`,
-    rotate: (cardIndex - centerIndex) * 2.5,
-    delay: cardIndex * 0.06,
-  };
-};
+const getBustCollectionTarget = (cardIndex: number, handSize: number) => ({
+  x: `${(handSize - 1) * 10 - cardIndex * 20}%`,
+  y: `${cardIndex * 18}%`,
+  rotate: 0,
+  delay: cardIndex * 0.05,
+});
 
 const Game = () => {
   const {
@@ -102,7 +98,10 @@ const Game = () => {
 
   useEffect(() => {
     if (gameState === GameState.Play && playState === PlayState.Bust) {
-      setCollectedBustHands(prev => new Set(prev).add(currentFocus));
+      const timer = setTimeout(() => {
+        setCollectedBustHands(prev => new Set(prev).add(currentFocus));
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [gameState, playState, currentFocus]);
 
@@ -267,7 +266,7 @@ useEffect(() => {
       setPlayState(PlayState.Bust);
       setTimeout(() => {
         moveFocus();
-      }, 1000);
+      }, 1600);
       return;
     }
 
@@ -386,11 +385,11 @@ useEffect(() => {
     >
       {playerCards.map((row, rowIndex) => {
         const outcome = showResults ? getHandOutcome(row) : null;
+        const isBustHand = collectedBustHands.has(rowIndex);
         const isCollectingBustHand =
+          isBustHand &&
           gameState === GameState.Play &&
-          playState === PlayState.Bust &&
-          currentFocus === rowIndex;
-        const isCollectedBustHand = collectedBustHands.has(rowIndex);
+          playState === PlayState.Bust;
 
         return (
           <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
@@ -434,7 +433,7 @@ useEffect(() => {
                     ...card.style,
                   }}
                   isFlipped={card.isFlipped}
-                  animation={isCollectingBustHand ? CardAnimation.Collect : isCollectedBustHand ? undefined : card.animation}
+                  animation={isCollectingBustHand ? CardAnimation.Collect : isBustHand ? undefined : card.animation}
                   animationTarget={
                     isCollectingBustHand ? getBustCollectionTarget(cardIndex, row.length) : undefined
                   }

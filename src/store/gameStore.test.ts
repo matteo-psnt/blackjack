@@ -358,6 +358,106 @@ describe('gameStore bankroll logic', () => {
     expect(state.gameState).toBe(GameState.Animation);
   });
 
+  it('deals only the active split hand before returning control', () => {
+    const deck = new Deck(0);
+    const dealCard = vi.spyOn(deck, 'dealCard').mockReturnValueOnce({
+      rank: CardRank.Three,
+      suit: CardSuit.Spades,
+    });
+
+    useGameStore.setState({
+      deck,
+      currentBalance: 90,
+      currentFocus: 0,
+      handBets: [10],
+      gameState: GameState.Play,
+      playState: PlayState.CanSplit,
+      playerCards: [
+        [
+          { rank: CardRank.Eight, suit: CardSuit.Clubs },
+          { rank: CardRank.Eight, suit: CardSuit.Diamonds },
+        ],
+      ],
+      totalWagered: 10,
+    });
+
+    useGameStore.getState().split();
+
+    let state = useGameStore.getState();
+    expect(state.playerCards).toHaveLength(2);
+    expect(state.playerCards[0]).toHaveLength(1);
+    expect(state.playerCards[1]).toHaveLength(1);
+    expect(state.currentFocus).toBe(1);
+    expect(state.gameState).toBe(GameState.Animation);
+
+    vi.advanceTimersByTime(1499);
+
+    expect(dealCard).not.toHaveBeenCalled();
+    state = useGameStore.getState();
+    expect(state.playerCards[0]).toHaveLength(1);
+    expect(state.playerCards[1]).toHaveLength(1);
+
+    vi.advanceTimersByTime(1);
+
+    state = useGameStore.getState();
+    expect(dealCard).toHaveBeenCalledTimes(1);
+    expect(state.playerCards[0]).toHaveLength(1);
+    expect(state.playerCards[1]).toHaveLength(2);
+    expect(state.gameState).toBe(GameState.Animation);
+
+    vi.advanceTimersByTime(500);
+
+    expect(useGameStore.getState().gameState).toBe(GameState.Play);
+  });
+
+  it('deals the waiting split hand when focus advances to it', () => {
+    const deck = new Deck(0);
+    const dealCard = vi.spyOn(deck, 'dealCard').mockReturnValueOnce({
+      rank: CardRank.Four,
+      suit: CardSuit.Hearts,
+    });
+
+    useGameStore.setState({
+      deck,
+      currentBalance: 80,
+      currentFocus: 1,
+      handBets: [10, 10],
+      gameState: GameState.Play,
+      playState: PlayState.Split,
+      playerCards: [
+        [{ rank: CardRank.Eight, suit: CardSuit.Clubs }],
+        [
+          { rank: CardRank.Eight, suit: CardSuit.Diamonds },
+          { rank: CardRank.Three, suit: CardSuit.Spades },
+        ],
+      ],
+      totalWagered: 20,
+    });
+
+    useGameStore.getState().moveFocus();
+
+    let state = useGameStore.getState();
+    expect(state.currentFocus).toBe(0);
+    expect(state.gameState).toBe(GameState.Animation);
+    expect(state.playerCards[0]).toHaveLength(1);
+
+    vi.advanceTimersByTime(499);
+
+    expect(dealCard).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+
+    state = useGameStore.getState();
+    expect(dealCard).toHaveBeenCalledTimes(1);
+    expect(state.playerCards[0]).toHaveLength(2);
+    expect(state.playerCards[1]).toHaveLength(2);
+    expect(state.gameState).toBe(GameState.Animation);
+
+    vi.advanceTimersByTime(500);
+
+    expect(useGameStore.getState().gameState).toBe(GameState.Play);
+  });
+
   it('stages no bet and shows game over when less than one dollar remains', () => {
     useGameStore.setState({
       currentBet: 1,
