@@ -647,6 +647,81 @@ describe('gameStore bankroll logic', () => {
     expect(state.gameState).toBe(GameState.Betting);
   });
 
+  it('advances focus to the previous hand without dealing when it already has two cards', () => {
+    useGameStore.setState({
+      currentFocus: 1,
+      handBets: [10, 10],
+      gameState: GameState.Play,
+      playState: PlayState.Split,
+      playerCards: [
+        [
+          { rank: CardRank.Eight, suit: CardSuit.Clubs },
+          { rank: CardRank.Three, suit: CardSuit.Hearts },
+        ],
+        [
+          { rank: CardRank.Eight, suit: CardSuit.Diamonds },
+          { rank: CardRank.Five, suit: CardSuit.Spades },
+        ],
+      ],
+      totalWagered: 20,
+    });
+
+    useGameStore.getState().moveFocus();
+
+    const state = useGameStore.getState();
+    expect(state.currentFocus).toBe(0);
+    expect(state.gameState).toBe(GameState.Play);
+  });
+
+  it('declining insurance transitions to Play when dealer does not have blackjack', () => {
+    useGameStore.setState({
+      currentBet: 20,
+      currentBalance: 80,
+      dealerCards: [
+        { rank: CardRank.Ace, suit: CardSuit.Spades },
+        { rank: CardRank.Seven, suit: CardSuit.Hearts, isFlipped: true },
+      ],
+      gameState: GameState.Insurance,
+    });
+
+    useGameStore.getState().resolveInsuranceDecision(false);
+
+    const state = useGameStore.getState();
+    expect(state.insuranceBet).toBe(0);
+    expect(state.currentBalance).toBe(80);
+    expect(state.gameState).toBe(GameState.Play);
+  });
+
+  it('returns the original stake for a push on each split hand', () => {
+    useGameStore.setState({
+      currentBet: 10,
+      currentBalance: 880,
+      handBets: [10, 10],
+      totalWagered: 20,
+      playerCards: [
+        [
+          { rank: CardRank.Nine, suit: CardSuit.Clubs },
+          { rank: CardRank.Eight, suit: CardSuit.Hearts },
+        ],
+        [
+          { rank: CardRank.King, suit: CardSuit.Diamonds },
+          { rank: CardRank.Seven, suit: CardSuit.Spades },
+        ],
+      ],
+      dealerCards: [
+        { rank: CardRank.Ten, suit: CardSuit.Clubs },
+        { rank: CardRank.Seven, suit: CardSuit.Hearts },
+      ],
+    });
+
+    useGameStore.getState().finalizeRound();
+
+    const state = useGameStore.getState();
+    // Hand 1 (17) pushes vs dealer 17: payout = 10. Hand 2 (17) pushes vs dealer 17: payout = 10.
+    expect(state.currentBalance).toBe(900);
+    expect(state.currentBet).toBe(10);
+  });
+
   it('settles multiple split hands and pools all payouts in one resolution', () => {
     useGameStore.setState({
       currentBet: 10,
