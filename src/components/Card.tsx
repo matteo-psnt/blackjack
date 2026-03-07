@@ -32,12 +32,12 @@ const cardVariants = {
   slideDown: {
     initial: { y: '-50%', opacity: 0 },
     animate: { y: 0, opacity: 1 },
-    transition: { type: 'spring', stiffness: 300, damping: 25 },
+    transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
   },
   slideUp: {
     initial: { y: '50%', opacity: 0 },
     animate: { y: 0, opacity: 1 },
-    transition: { type: 'spring', stiffness: 300, damping: 25 },
+    transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
   },
 
   // Split animations - cards are already in new position, animate FROM old position
@@ -45,27 +45,27 @@ const cardVariants = {
   slideRight: {
     initial: { x: '-72.5%' }, // Start from left (old position)
     animate: { x: 0 }, // End at current position (moved right)
-    transition: { type: 'spring', stiffness: 120, damping: 25 },
+    transition: { type: 'spring' as const, stiffness: 120, damping: 25 },
   },
   // slideLeft: the LEFT split card, starts at center, ends at left
   slideLeft: {
     initial: { x: '72.5%' }, // Start from right (where center was)
     animate: { x: 0 }, // End at current position (left hand)
-    transition: { type: 'spring', stiffness: 120, damping: 25 },
+    transition: { type: 'spring' as const, stiffness: 120, damping: 25 },
   },
 
   // slideDownRight: the RIGHT split card, starts at center, ends at right-down
   slideDownRight: {
     initial: { x: '-59.5%', y: '-18%' }, // Start from left-up (where center was)
     animate: { x: 0, y: 0 }, // End at current position (right hand)
-    transition: { type: 'spring', stiffness: 120, damping: 25 },
+    transition: { type: 'spring' as const, stiffness: 120, damping: 25 },
   },
 
   // Double down
   doubleDown: {
     initial: { x: '50%', y: '-150%', rotate: 0, opacity: 0 },
     animate: { x: 0, y: 0, rotate: 90, opacity: 1 },
-    transition: { type: 'spring', stiffness: 200, damping: 20 },
+    transition: { type: 'spring' as const, stiffness: 200, damping: 20 },
   },
 
   collect: (target?: CardProps['animationTarget']) => ({
@@ -79,7 +79,7 @@ const cardVariants = {
     },
     transition: {
       duration: 0.34,
-      ease: [0.22, 1, 0.36, 1],
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
       delay: target?.delay ?? 0,
     },
   }),
