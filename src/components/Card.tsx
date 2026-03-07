@@ -144,10 +144,14 @@ const Card: React.FC<CardProps> = ({
   ]);
 
   return (
-    <motion.div className="relative h-full w-[65%]" style={style} animate={controls}>
+    <motion.div
+      className="relative h-full w-[65%] drop-shadow-[0_1px_3px_rgba(0,0,0,0.18)]"
+      style={style}
+      animate={controls}
+    >
       <div>
         <img
-          className={`absolute h-full w-auto object-contain rounded-[4.5%] shadow-md transition-transform duration-[600ms] ${
+          className={`absolute h-full w-auto object-contain rounded-[4.5%] transition-transform duration-[600ms] ${
             isFlipped ? '[transform:rotateY(180deg)]' : '[transform:rotateY(0deg)]'
           }`}
           style={{ backfaceVisibility: 'hidden', transformStyle: 'preserve-3d' }}
@@ -155,7 +159,7 @@ const Card: React.FC<CardProps> = ({
           alt={isFlipped ? 'Card Back' : `${rank} of ${suit}`}
         />
         <img
-          className={`absolute h-full w-auto object-contain rounded-[4.5%] shadow-md transition-transform duration-[600ms] ${
+          className={`absolute h-full w-auto object-contain rounded-[4.5%] transition-transform duration-[600ms] ${
             isFlipped ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
           }`}
           style={{ backfaceVisibility: 'hidden', transformStyle: 'preserve-3d' }}

@@ -24,6 +24,7 @@ import {
   getRankGameValue,
 } from '../utils/gameLogic';
 import { useBalanceCounter } from '../hooks/useBalanceCounter';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const getBustCollectionTarget = (cardIndex: number, handSize: number) => ({
   x: `${(handSize - 1) * 10 - cardIndex * 20}%`,
@@ -49,6 +50,7 @@ const DEALER_STACK_START_LEFT = 5.5;
 const DEALER_CARD_SPACING = 24;
 
 const Game = () => {
+  const isMobile = useIsMobile();
   const {
     playerCards,
     dealerCards,
@@ -346,8 +348,8 @@ const Game = () => {
 
   const renderPlayerCards = () => (
     <div
-      className="absolute left-1/2 flex justify-center items-center gap-[4.5%] w-[103%] h-[22%] -translate-x-1/2 -translate-y-1/2"
-      style={{ top: '74%' }}
+      className={`absolute left-1/2 flex justify-center items-center w-[103%] -translate-x-1/2 -translate-y-1/2 ${isMobile ? 'gap-[3.5%] h-[34%]' : 'gap-[4.5%] h-[22%]'}`}
+      style={{ top: isMobile ? '77%' : '74%' }}
     >
       {playerCards.map((row, rowIndex) => {
         const outcome = showResults ? getHandOutcome(row, dealerCards, playerCards.length) : null;
@@ -361,14 +363,17 @@ const Game = () => {
         const isActiveHand = rowIndex === currentFocus && !isBustHand && outcome === null;
 
         return (
-          <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
+          <div
+            className={`relative h-full ${isMobile ? 'w-[20%]' : 'w-[10%]'}`}
+            key={`row-${rowIndex}`}
+          >
             <div
-              className={`flex justify-center items-center absolute top-[123%] left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full font-bold text-[66%] tracking-tight transition-all duration-300 ${
+              className={`flex justify-center items-center absolute ${isMobile ? 'top-[101%]' : 'top-[123%]'} left-1/2 w-[28%] ${isMobile ? 'aspect-square' : 'h-[28%]'} -translate-x-1/2 -translate-y-1/2 rounded-full font-bold ${isMobile ? 'text-[50%]' : 'text-[66%]'} tracking-tight transition-all duration-300 ${
                 outcome !== null
-                  ? `w-[28%] h-[28%] ${getOutcomeBadgeClasses(outcome)}`
+                  ? getOutcomeBadgeClasses(outcome)
                   : isActiveHand
-                    ? 'w-[28%] h-[28%] border-2 border-white/65 bg-black/60 text-white'
-                    : 'w-[28%] h-[28%] border border-white/30 bg-black/60 text-white/80'
+                    ? 'border-2 border-white/65 bg-black/60 text-white'
+                    : 'border border-white/30 bg-black/60 text-white/80'
               }`}
             >
               {getVisibleHandValue(row)}
@@ -377,13 +382,17 @@ const Game = () => {
             {outcome !== null && (
               <div
                 className="absolute"
-                style={{ top: '158%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                style={{
+                  top: isMobile ? '115%' : '158%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
               >
                 <motion.div
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25, duration: 0.2 }}
-                  className={`font-bold text-[60%] whitespace-nowrap ${getNetColor(outcome)}`}
+                  className={`font-bold whitespace-nowrap ${isMobile ? 'text-[80%]' : 'text-[60%]'} ${getNetColor(outcome)}`}
                 >
                   {getOutcomeLabel(outcome)}
                 </motion.div>
@@ -433,8 +442,8 @@ const Game = () => {
 
     return (
       <div
-        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-[10%] h-[22%]"
-        style={{ top: '25%' }}
+        className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 h-[22%] ${isMobile ? 'w-[20%]' : 'w-[10%]'}`}
+        style={{ top: isMobile ? '24%' : '25%' }}
       >
         {dealerCards.map((card, cardIndex) => (
           <Card
@@ -449,7 +458,9 @@ const Game = () => {
             }}
           />
         ))}
-        <div className="flex justify-center items-center absolute top-[123%] left-1/2 w-[28%] h-[28%] -translate-x-1/2 -translate-y-1/2 border border-white/30 rounded-full bg-black/60 text-white text-[66%] font-bold tracking-tight">
+        <div
+          className={`flex justify-center items-center absolute top-[123%] left-1/2 w-[28%] ${isMobile ? 'aspect-square' : 'h-[28%]'} -translate-x-1/2 -translate-y-1/2 border border-white/30 rounded-full bg-black/60 text-white/80 ${isMobile ? 'text-[50%]' : 'text-[66%]'} font-bold tracking-tight transition-all duration-300`}
+        >
           {getVisibleHandValue(dealerCards)}
         </div>
       </div>
@@ -509,7 +520,7 @@ const Game = () => {
 
         {renderPlayerCards()}
 
-        {playerCards.length > 0 && playerCards[0].length > 0 && (
+        {!isMobile && playerCards.length > 0 && playerCards[0].length > 0 && (
           <div className="absolute bottom-[2%] left-1/2 -translate-x-1/2 text-white/20 text-[0.28em] font-bold tracking-[0.2em] uppercase">
             You
           </div>
@@ -527,7 +538,7 @@ const Game = () => {
       {/* Action bar */}
       <div
         className="flex items-center justify-between gap-4 px-[5%] border-t border-white/[0.08] bg-black/35"
-        style={{ height: '22%' }}
+        style={{ height: isMobile ? '30%' : '22%' }}
       >
         <motion.div className="flex min-w-0 flex-1" {...introItem(0.2, 12)}>
           <BettingControls

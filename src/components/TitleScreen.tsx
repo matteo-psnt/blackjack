@@ -112,7 +112,7 @@ const TitleScreen: React.FC<TitleScreenProps> = ({ onStart }) => {
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.38, ease: 'easeOut' }}
-          className="absolute inset-0"
+          className="absolute inset-0 z-10"
           aria-hidden="true"
         >
           {heroCards.map((card, index) => (

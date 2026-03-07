@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { GameState } from '../game/model';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface BettingControlsProps {
   currentBet: number;
@@ -16,6 +17,7 @@ const BettingControls: React.FC<BettingControlsProps> = ({
   setBetAmount,
   gameState,
 }) => {
+  const isMobile = useIsMobile();
   const [draftValue, setDraftValue] = useState(String(currentBet));
   const [isEditing, setIsEditing] = useState(false);
   const isBetting = gameState === GameState.Betting;
@@ -60,7 +62,7 @@ const BettingControls: React.FC<BettingControlsProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-[0.5em]">
       <div className="flex flex-col gap-[0.1em]">
         <span className="text-white/40 text-[0.32em] font-bold tracking-[0.2em] uppercase">
           Bet
@@ -70,7 +72,7 @@ const BettingControls: React.FC<BettingControlsProps> = ({
           inputMode="numeric"
           readOnly={!isBetting}
           value={isEditing ? draftValue : `$${currentBet}`}
-          className={`px-2 py-1 rounded text-white font-bold text-[0.8em] outline-none transition-colors w-[5.5em] bg-transparent ${
+          className={`px-[0.5em] py-[0.3em] rounded text-white font-bold text-[0.8em] outline-none transition-colors w-[5.5em] bg-transparent ${
             isBetting
               ? 'cursor-text border border-white/25 focus:border-white/50 focus:bg-black/30'
               : 'border border-transparent pointer-events-none'
@@ -83,18 +85,18 @@ const BettingControls: React.FC<BettingControlsProps> = ({
       </div>
 
       {isBetting && (
-        <div className="flex gap-1.5">
+        <div className="flex gap-[0.4em]">
           {CHIP_PRESETS.map((chipValue) => (
             <button
               key={chipValue}
-              className="px-2 py-1 border border-white/20 rounded text-white/60 text-[0.36em] font-bold hover:border-white/45 hover:text-white/90 hover:bg-white/[0.05] transition-all"
+              className={`border border-white/20 rounded text-white/60 font-bold hover:border-white/45 hover:text-white/90 hover:bg-white/[0.05] transition-all ${isMobile ? 'px-[0.7em] py-[0.55em] text-[0.52em]' : 'px-[0.5em] py-[0.3em] text-[0.36em]'}`}
               onClick={() => setBetAmount(currentBet + chipValue)}
             >
               +{chipValue}
             </button>
           ))}
           <button
-            className="px-2 py-1 border border-white/15 rounded text-white/35 text-[0.36em] font-bold hover:border-white/30 hover:text-white/55 transition-all"
+            className={`border border-white/15 rounded text-white/35 font-bold hover:border-white/30 hover:text-white/55 transition-all ${isMobile ? 'px-[0.7em] py-[0.55em] text-[0.52em]' : 'px-[0.5em] py-[0.3em] text-[0.36em]'}`}
             onClick={() => setBetAmount(0)}
           >
             Clear
