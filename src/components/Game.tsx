@@ -1,21 +1,28 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Card from './Card';
-import { CardAnimation, CardRank, GameState, PlayState } from './enums';
 import BettingControls from './BettingControls';
 import GameControls from './GameControls';
 import InsurancePrompt from './InsurancePrompt';
 import GameOver from './GameOver';
+import { CardAnimation, CardRank, GameState, PlayState } from '../game/model';
 import {
-  Card as CardData,
   getInsuranceCost,
   getResolvedHandValue,
   getVisibleHandValue,
   useGameStore,
 } from '../store/gameStore';
+import {
+  formatDisplayAmount,
+  getHandOutcome,
+  getNetAmount,
+  getOutcomeLabel,
+  getOutcomeBadgeClasses,
+  getNetColor,
+  getRankGameValue,
+} from '../utils/gameLogic';
+import { useBalanceCounter } from '../hooks/useBalanceCounter';
 
-type HandOutcome = 'bust' | 'lose' | 'push' | 'win' | 'blackjack';
-const getRankGameValue = (rank: CardRank) => Math.min(10, rank);
 const getBustCollectionTarget = (cardIndex: number, handSize: number) => ({
   x: `${(handSize - 1) * 10 - cardIndex * 20}%`,
   y: `${cardIndex * 18}%`,
@@ -76,30 +83,19 @@ const Game = () => {
     currentHand.length === 2 &&
     currentHandBet > 0 &&
     currentBalance >= currentHandBet;
-  const formatDisplayAmount = (amount: number) =>
-    Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
   const showResults = gameState === GameState.Results || gameState === GameState.WrapUp;
 
-  // Animated balance counter — fires on every balance change (deal, double, split, round resolution)
-  const [displayedBalance, setDisplayedBalance] = useState(currentBalance);
-  const [balanceTrend, setBalanceTrend] = useState<'up' | 'down' | null>(null);
   const [collectedBustHands, setCollectedBustHands] = useState<Set<number>>(new Set());
-  const balanceFromRef = useRef(currentBalance);
-  const balanceRafRef = useRef<number>(0);
-  const balanceTrendTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Captures balance right before deal so that the resolution animation shows net
-  // profit/loss from the player's pre-deal baseline (not the doubled return).
-  const preDealBalanceRef = useRef(currentBalance);
 
-  const handleDeal = useCallback(() => {
-    preDealBalanceRef.current = currentBalance;
-    beginDeal();
-  }, [currentBalance, beginDeal]);
+  const { displayedBalance, balanceTrend, handleDeal, snapBaselineToPredeal } = useBalanceCounter(
+    currentBalance,
+    beginDeal,
+  );
 
   useEffect(() => {
     if (gameState === GameState.Play && playState === PlayState.Bust) {
       const timer = setTimeout(() => {
-        setCollectedBustHands(prev => new Set(prev).add(currentFocus));
+        setCollectedBustHands((prev) => new Set(prev).add(currentFocus));
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -110,93 +106,10 @@ const Game = () => {
   }, [playerCards.length]);
 
   useEffect(() => {
-    const from = balanceFromRef.current;
-    const to = currentBalance;
-    if (from === to) return;
-
-    setBalanceTrend(to > from ? 'up' : 'down');
-    if (balanceTrendTimer.current) clearTimeout(balanceTrendTimer.current);
-    cancelAnimationFrame(balanceRafRef.current);
-
-    const duration = 600;
-    const startTime = performance.now();
-
-    const animate = (time: number) => {
-      const t = Math.min((time - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      const value = from + (to - from) * eased;
-      balanceFromRef.current = value;
-      setDisplayedBalance(Math.round(value));
-      if (t < 1) {
-        balanceRafRef.current = requestAnimationFrame(animate);
-      } else {
-        balanceFromRef.current = to;
-        setDisplayedBalance(to);
-        balanceTrendTimer.current = setTimeout(() => setBalanceTrend(null), 500);
-      }
-    };
-
-    balanceRafRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(balanceRafRef.current);
-  }, [currentBalance]);
-
-  const getHandOutcome = (playerHand: CardData[]): HandOutcome => {
-    const playerValue = getResolvedHandValue(playerHand);
-    const dealerValue = getResolvedHandValue(dealerCards);
-    const dealerHasBlackjack = dealerCards.length === 2 && dealerValue === 21;
-    const isNaturalBlackjack =
-      playerValue === 21 && playerHand.length === 2 && playerCards.length === 1;
-
-    if (playerValue > 21) return 'bust';
-    if (isNaturalBlackjack) return dealerHasBlackjack ? 'push' : 'blackjack';
-    if (dealerHasBlackjack) return 'lose';
-    if (dealerValue > 21 || playerValue > dealerValue) return 'win';
-    if (playerValue === dealerValue) return 'push';
-    return 'lose';
-  };
-
-  const getNetAmount = (outcome: HandOutcome, bet: number): number => {
-    switch (outcome) {
-      case 'blackjack': return bet * 1.5;
-      case 'win': return bet;
-      case 'push': return 0;
-      default: return -bet;
-    }
-  };
-
-  const getOutcomeLabel = (outcome: HandOutcome): string => {
-    switch (outcome) {
-      case 'win': return 'Win';
-      case 'blackjack': return 'Blackjack';
-      case 'push': return 'Push';
-      case 'bust': return 'Bust';
-      default: return 'Lose';
-    }
-  };
-
-  const getOutcomeBadgeClasses = (outcome: HandOutcome): string => {
-    switch (outcome) {
-      case 'win': return 'border-2 border-emerald-500 bg-emerald-600 text-white';
-      case 'blackjack': return 'border-2 border-yellow-400 bg-yellow-500 text-black';
-      case 'push': return 'border border-white/30 bg-black/60 text-white/60';
-      default: return 'border-2 border-red-600 bg-red-700 text-white';
-    }
-  };
-
-  const getNetColor = (outcome: HandOutcome): string => {
-    switch (outcome) {
-      case 'win':
-      case 'blackjack': return 'text-emerald-400';
-      case 'push': return 'text-white/50';
-      default: return 'text-red-400';
-    }
-  };
-
-  useEffect(() => {
     initializeDeck();
   }, [initializeDeck]);
 
-useEffect(() => {
+  useEffect(() => {
     if (gameState === GameState.Dealing) {
       if (deck.deck.length < 52) {
         initializeDeck();
@@ -228,12 +141,10 @@ useEffect(() => {
       );
       setTimeout(() => setGameState(GameState.WrapUp), 3000);
     } else if (gameState === GameState.WrapUp) {
-      // Snap the animation baseline to pre-deal so the counter shows net
-      // profit/loss rather than the full stake-return + profit combined.
-      balanceFromRef.current = preDealBalanceRef.current;
+      snapBaselineToPredeal();
       finalizeRound();
     }
-  }, [gameState]);
+  }, [gameState, snapBaselineToPredeal]);
 
   useEffect(() => {
     if (gameState !== GameState.DealerDeal) {
@@ -316,7 +227,7 @@ useEffect(() => {
     let allPush = true;
 
     for (let i = 0; i < playerCards.length; i++) {
-      const outcome = getHandOutcome(playerCards[i]);
+      const outcome = getHandOutcome(playerCards[i], dealerCards, playerCards.length);
       const bet = handBets[i] ?? 0;
       const net = getNetAmount(outcome, bet);
       totalNet += net;
@@ -343,7 +254,8 @@ useEffect(() => {
           ? 'text-red-400'
           : 'text-white/50';
 
-    const netColor = totalNet > 0 ? 'text-emerald-300' : totalNet < 0 ? 'text-red-300' : 'text-white/40';
+    const netColor =
+      totalNet > 0 ? 'text-emerald-300' : totalNet < 0 ? 'text-red-300' : 'text-white/40';
 
     const netStr = allPush
       ? null
@@ -364,9 +276,7 @@ useEffect(() => {
         </p>
 
         {netStr && (
-          <p className={`text-[0.95em] font-bold leading-none mt-[0.08em] ${netColor}`}>
-            {netStr}
-          </p>
+          <p className={`text-[0.95em] font-bold leading-none mt-[0.08em] ${netColor}`}>{netStr}</p>
         )}
 
         {totalGross > 0 && (
@@ -384,12 +294,10 @@ useEffect(() => {
       style={{ top: '74%' }}
     >
       {playerCards.map((row, rowIndex) => {
-        const outcome = showResults ? getHandOutcome(row) : null;
+        const outcome = showResults ? getHandOutcome(row, dealerCards, playerCards.length) : null;
         const isBustHand = collectedBustHands.has(rowIndex);
         const isCollectingBustHand =
-          isBustHand &&
-          gameState === GameState.Play &&
-          playState === PlayState.Bust;
+          isBustHand && gameState === GameState.Play && playState === PlayState.Bust;
 
         return (
           <div className="relative w-[10%] h-full" key={`row-${rowIndex}`}>
@@ -398,15 +306,18 @@ useEffect(() => {
                 outcome !== null
                   ? getOutcomeBadgeClasses(outcome)
                   : currentFocus === rowIndex
-                  ? 'border-2 border-white/60 bg-black/60 text-white'
-                  : 'border border-white/30 bg-black/60 text-white/80'
+                    ? 'border-2 border-white/60 bg-black/60 text-white'
+                    : 'border border-white/30 bg-black/60 text-white/80'
               }`}
             >
               {getVisibleHandValue(row)}
             </div>
 
             {outcome !== null && (
-              <div className="absolute" style={{ top: '158%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+              <div
+                className="absolute"
+                style={{ top: '158%', left: '50%', transform: 'translate(-50%, -50%)' }}
+              >
                 <motion.div
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -433,9 +344,17 @@ useEffect(() => {
                     ...card.style,
                   }}
                   isFlipped={card.isFlipped}
-                  animation={isCollectingBustHand ? CardAnimation.Collect : isBustHand ? undefined : card.animation}
+                  animation={
+                    isCollectingBustHand
+                      ? CardAnimation.Collect
+                      : isBustHand
+                        ? undefined
+                        : card.animation
+                  }
                   animationTarget={
-                    isCollectingBustHand ? getBustCollectionTarget(cardIndex, row.length) : undefined
+                    isCollectingBustHand
+                      ? getBustCollectionTarget(cardIndex, row.length)
+                      : undefined
                   }
                 />
               );
@@ -478,8 +397,7 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col h-full w-full">
-
-{/* Top bar */}
+      {/* Top bar */}
       <div
         className="flex items-center justify-between px-[4%] border-b border-white/[0.08] bg-black/20"
         style={{ height: '11%' }}
@@ -488,10 +406,15 @@ useEffect(() => {
           <span className="text-white/40 text-[0.32em] font-bold tracking-[0.2em] uppercase">
             Balance
           </span>
-          <span className={`text-[0.9em] font-bold leading-none transition-colors duration-300 ${
-            balanceTrend === 'up' ? 'text-emerald-400' :
-            balanceTrend === 'down' ? 'text-red-400' : 'text-white'
-          }`}>
+          <span
+            className={`text-[0.9em] font-bold leading-none transition-colors duration-300 ${
+              balanceTrend === 'up'
+                ? 'text-emerald-400'
+                : balanceTrend === 'down'
+                  ? 'text-red-400'
+                  : 'text-white'
+            }`}
+          >
             <span className="text-red-500">$</span>
             {formatDisplayAmount(displayedBalance)}
           </span>

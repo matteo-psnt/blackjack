@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import { vi, type Mock } from 'vitest';
 import GameControls from '../components/GameControls';
 import InsurancePrompt from '../components/InsurancePrompt';
-import { GameState, PlayState } from '../components/enums';
+import { GameState, PlayState } from '../game/model';
 
 type GameControlsProps = ComponentProps<typeof GameControls>;
 type InsurancePromptProps = ComponentProps<typeof InsurancePrompt>;

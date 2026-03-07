@@ -1,20 +1,10 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { CardAnimation, CardRank, CardSuit, GameState, PlayState } from '../components/enums';
-import Deck from '../components/Deck';
+import { CardAnimation, Deck, GameState, PlayState, type Card } from '../game/model';
+import { getRankGameValue, getResolvedHandValue, getInsuranceCost } from '../utils/gameLogic';
 
 const DEFAULT_BANKROLL = 1000;
 const DEFAULT_STAGED_BET = 100;
-
-export interface Card {
-  rank: CardRank;
-  suit: CardSuit;
-  isFlipped?: boolean;
-  animation?: CardAnimation;
-  style?: React.CSSProperties;
-}
-
-const getRankGameValue = (rank: CardRank) => Math.min(10, rank);
 
 interface GameStore {
   deck: Deck;
@@ -75,46 +65,16 @@ const createShuffledDeck = () => {
 };
 
 const getStoredDebugPreference = () => {
-  if (typeof window === 'undefined') {
+  if (
+    typeof window === 'undefined' ||
+    typeof localStorage === 'undefined' ||
+    typeof localStorage.getItem !== 'function'
+  ) {
     return false;
   }
 
   return localStorage.getItem('blackjack-debug') === 'true';
 };
-
-export const getHandValue = (
-  hand: Array<{ rank: CardRank; isFlipped?: boolean }>,
-  includeHiddenCards = false,
-) => {
-  let value = 0;
-  let aces = 0;
-
-  for (const card of hand) {
-    if (!card.isFlipped || includeHiddenCards) {
-      if (card.rank === CardRank.Ace) {
-        aces += 1;
-      }
-
-      value += Math.min(10, card.rank);
-    }
-  }
-
-  while (value <= 11 && aces > 0) {
-    value += 10;
-    aces -= 1;
-  }
-
-  return value;
-};
-
-export const getVisibleHandValue = (hand: Array<{ rank: CardRank; isFlipped?: boolean }>) =>
-  getHandValue(hand);
-
-export const getResolvedHandValue = (hand: Array<{ rank: CardRank; isFlipped?: boolean }>) =>
-  getHandValue(hand, true);
-
-export const getInsuranceCost = (betAmount: number) =>
-  roundToHalfDollar(Math.max(0, betAmount) / 2);
 
 const getNextStagedBet = (preferredBet: number, availableBalance: number) => {
   const maxAffordableBet = Math.max(0, Math.floor(availableBalance));
@@ -178,7 +138,11 @@ export const useGameStore = create<GameStore>()(
         setPlayState: (state) => set({ playState: state }, false, 'setPlayState'),
         setShowGameOver: (show) => set({ showGameOver: show }, false, 'setShowGameOver'),
         setShowDebug: (show) => {
-          if (typeof window !== 'undefined') {
+          if (
+            typeof window !== 'undefined' &&
+            typeof localStorage !== 'undefined' &&
+            typeof localStorage.setItem === 'function'
+          ) {
             localStorage.setItem('blackjack-debug', String(show));
           }
 
@@ -505,9 +469,7 @@ export const useGameStore = create<GameStore>()(
           });
 
           const insurancePayout = insuranceBet > 0 && dealerHasBlackjack ? insuranceBet * 3 : 0;
-          const availableBalance = roundToHalfDollar(
-            currentBalance + mainPayout + insurancePayout,
-          );
+          const availableBalance = roundToHalfDollar(currentBalance + mainPayout + insurancePayout);
           const nextBet = getNextStagedBet(currentBet, availableBalance);
           const nextBalance = availableBalance;
 
@@ -534,3 +496,10 @@ export const useGameStore = create<GameStore>()(
     { name: 'Blackjack Game' },
   ),
 );
+
+export {
+  getHandValue,
+  getVisibleHandValue,
+  getResolvedHandValue,
+  getInsuranceCost,
+} from '../utils/gameLogic';

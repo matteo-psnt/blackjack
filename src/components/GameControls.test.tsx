@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import GameControls from './GameControls';
-import { GameState, PlayState } from './enums';
+import { GameState, PlayState } from '../game/model';
 import { createGameControlsProps } from '../test/factories';
 
 describe('GameControls', () => {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import BettingControls from './BettingControls';
-import { GameState } from './enums';
+import { GameState } from '../game/model';
 
 describe('BettingControls', () => {
   it('does not send a negative bet when ArrowDown is pressed at zero', () => {
