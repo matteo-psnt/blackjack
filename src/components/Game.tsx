@@ -174,6 +174,10 @@ const Game = () => {
     }
 
     if (getResolvedHandValue(currentHand) > 21) {
+      const lastCard = currentHand[currentHand.length - 1];
+      if (lastCard?.isFlipped) {
+        return;
+      }
       setPlayState(PlayState.Bust);
       setTimeout(() => {
         moveFocus();
